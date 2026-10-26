@@ -45,7 +45,9 @@ import {
   getSavedEmailLogs,
   getWeeklyReportSchedule,
   isApprovalTokenUsed,
+  isMagicLoginTokenUsed,
   markApprovalTokenUsed,
+  markMagicLoginTokenUsed,
   saveAccessRequests,
   saveEmailLogs,
   saveWeeklyReportSchedule,
@@ -1083,7 +1085,7 @@ export default function App() {
     emailLogs,
   ]);
 
-  // Process Single-Use Admin Approval Link ({{Aceptar a quien solicitó invitación}}) from Email URL
+  // Process Single-Use Admin Magic Login Link (magic_login) and Single-Use Invitation Approval Link (approve_request / reject_request)
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const params = new URLSearchParams(window.location.search);
@@ -1098,32 +1100,102 @@ export default function App() {
     const applicantRole = params.get('role') || 'Directivo B2B';
     const applicantSector = params.get('sector') || 'SaaS & Tecnología';
 
-    // Clean URL immediately so refreshing doesn't re-trigger
+    // Clean URL immediately so refreshing doesn't re-trigger or leave token in address bar
     window.history.replaceState({}, document.title, window.location.pathname);
 
-    // Activate Administrator Session (clientesbinweb@gmail.com)
-    try {
-      localStorage.setItem(STORAGE_KEYS.INVITATION_GRANTED, 'true');
-      localStorage.setItem(STORAGE_KEYS.ADMIN_EMAIL, ADMIN_EMAIL.toLowerCase());
-    } catch {
-      // ignore storage errors
+    // 1. Handle Single-Use Admin Magic Link Login (magic_login)
+    if (adminAction === 'magic_login') {
+      if (!isAdminEmail(targetEmail)) {
+        showToast(
+          'Acceso Denegado',
+          'Este enlace mágico no corresponde a una cuenta administradora autorizada.'
+        );
+        return;
+      }
+
+      if (!token || isMagicLoginTokenUsed(token)) {
+        showToast(
+          'Link Mágico ya utilizado o caducado',
+          'Por seguridad, cada Link Mágico es de único uso. Solicita uno nuevo ingresando tus datos.'
+        );
+        return;
+      }
+
+      // Consume the Magic Link token immediately so it can never be reused
+      markMagicLoginTokenUsed(token);
+
+      const adminPreset = ADMIN_USERS[targetEmail];
+      const resolvedAdminName =
+        applicantName !== 'Ejecutivo B2B'
+          ? applicantName
+          : adminPreset?.fullName || 'Administrador BWOS';
+      const resolvedAdminCompany =
+        applicantCompany !== 'Empresa Invitada B2B'
+          ? applicantCompany
+          : adminPreset?.companyName || 'BWOS | Sitios Web & Merch';
+      const resolvedAdminRole =
+        applicantRole !== 'Directivo B2B'
+          ? applicantRole
+          : adminPreset?.role || 'Administrador de Admisiones B2B';
+
+      try {
+        localStorage.setItem(STORAGE_KEYS.INVITATION_GRANTED, 'true');
+        localStorage.setItem(STORAGE_KEYS.ADMIN_EMAIL, targetEmail);
+      } catch {
+        // ignore storage errors
+      }
+
+      setSessionEmail(targetEmail);
+      setIsAdmin(true);
+      setHasInvitationAccess(true);
+      setUserProfile({
+        fullName: resolvedAdminName,
+        companyName: resolvedAdminCompany,
+        countryCode: '+52',
+        phone: targetEmail,
+        offering:
+          'Administración y curaduría de admisiones corporativas BWOS Conectar B2B.',
+        demand:
+          'Validación de empresas invitadas y supervisión de rondas 1-a-1.',
+        accreditedAt: new Date().toISOString(),
+        role: resolvedAdminRole,
+      });
+      setActiveView('admin-dashboard');
+      showToast(
+        '¡Acceso Concedido por Link Mágico de Único Uso!',
+        `Bienvenido/a ${resolvedAdminName} · ${resolvedAdminCompany} (${targetEmail}).`
+      );
+      return;
     }
-    setIsAdmin(true);
-    setHasInvitationAccess(true);
-    setActiveView('admin-dashboard');
 
     if (adminAction === 'open_dashboard') {
-      showToast(
-        'Dashboard de Administración Abierto',
-        `Sesión activa como ${ADMIN_EMAIL}.`
-      );
+      const storedAdmin = (
+        localStorage.getItem(STORAGE_KEYS.ADMIN_EMAIL) || ''
+      )
+        .trim()
+        .toLowerCase();
+      if (isAdminEmail(storedAdmin)) {
+        setSessionEmail(storedAdmin);
+        setIsAdmin(true);
+        setHasInvitationAccess(true);
+        setActiveView('admin-dashboard');
+        showToast(
+          'Dashboard de Administración Abierto',
+          `Sesión activa como ${storedAdmin}.`
+        );
+      } else {
+        showToast(
+          'Autenticación por Link Mágico Requerida',
+          'Solicita tu Link Mágico de acceso único para abrir el Dashboard de Administración.'
+        );
+      }
       return;
     }
 
     if (!targetEmail || !targetEmail.includes('@')) return;
 
-    // Enforce Single-Use Token Rule (Link de Único Uso)
-    if (token && isApprovalTokenUsed(token)) {
+    // 2. Enforce Single-Use Token Rule for Email Approval/Rejection Links
+    if (!token || isApprovalTokenUsed(token)) {
       showToast(
         'Enlace de único uso ya utilizado',
         `El link de aprobación para ${targetEmail} ya fue consumido anteriormente.`
@@ -1132,9 +1204,22 @@ export default function App() {
     }
 
     const nowIso = new Date().toISOString();
-    if (token) {
-      markApprovalTokenUsed(token);
+    markApprovalTokenUsed(token);
+
+    // Activate Administrator Session upon clicking valid single-use approval/rejection link from admin inbox
+    const activeAdminEmail = isAdminEmail(sessionEmail)
+      ? sessionEmail
+      : ADMIN_EMAIL.toLowerCase();
+    try {
+      localStorage.setItem(STORAGE_KEYS.INVITATION_GRANTED, 'true');
+      localStorage.setItem(STORAGE_KEYS.ADMIN_EMAIL, activeAdminEmail);
+    } catch {
+      // ignore storage errors
     }
+    setSessionEmail(activeAdminEmail);
+    setIsAdmin(true);
+    setHasInvitationAccess(true);
+    setActiveView('admin-dashboard');
 
     if (adminAction === 'approve_request') {
       const approvedItem = upsertAccessRequest({
@@ -1147,11 +1232,11 @@ export default function App() {
         sectorsList: applicantSector.split(' · ').filter(Boolean),
         source: 'invitation_form',
         status: 'approved',
-        oneTimeToken: token || undefined,
+        oneTimeToken: token,
         tokenUsed: true,
         tokenUsedAt: nowIso,
         reviewedAt: nowIso,
-        reviewedBy: ADMIN_EMAIL,
+        reviewedBy: activeAdminEmail,
       });
 
       setAccessRequests(getAccessRequests());
@@ -1160,11 +1245,11 @@ export default function App() {
         type: 'access_approved',
         toEmail: approvedItem.email,
         toName: approvedItem.fullName,
-        fromName: 'Administrador General BWOS',
+        fromName: 'Administración General BWOS',
         fromEmail: ADMIN_EMAIL,
         companyName: approvedItem.companyName,
         subject: `[OK DEL ADMINISTRADOR OTORGADO] Acceso Habilitado a BWOS Conectar B2B`,
-        message: `Hola ${approvedItem.fullName} (${approvedItem.companyName}), el administrador (${ADMIN_EMAIL}) ha aceptado tu solicitud de invitación. Ya puedes ingresar a BWOS Conectar B2B utilizando tu correo ${approvedItem.email} en la pestaña "Ingreso Autorizado".`,
+        message: `Hola ${approvedItem.fullName} (${approvedItem.companyName}), la Administración General BWOS ha aceptado tu solicitud de invitación. Ya puedes ingresar a BWOS Conectar B2B utilizando tu correo ${approvedItem.email} en la pestaña "Ingreso Autorizado".`,
         ccAdminEmail: ADMIN_EMAIL,
       }).then(() => {
         setEmailLogs(getSavedEmailLogs());
@@ -1185,11 +1270,11 @@ export default function App() {
         sectorsList: [applicantSector],
         source: 'invitation_form',
         status: 'rejected',
-        oneTimeToken: token || undefined,
+        oneTimeToken: token,
         tokenUsed: true,
         tokenUsedAt: nowIso,
         reviewedAt: nowIso,
-        reviewedBy: ADMIN_EMAIL,
+        reviewedBy: activeAdminEmail,
       });
       setAccessRequests(getAccessRequests());
       showToast(
@@ -1204,7 +1289,7 @@ export default function App() {
     [accessRequests]
   );
 
-  // MANDATORY FIRST SCREEN: If user has not received the mandatory OK from the administrator (or is not the admin), render ONLY the Invitation Gate (zero platform data exposed)
+  // MANDATORY FIRST SCREEN: If user has not received the mandatory OK from the administrator (or has not authenticated via Magic Link), render ONLY the Invitation Gate (zero platform data exposed)
   if (!hasInvitationAccess) {
     return (
       <>
@@ -1220,6 +1305,27 @@ export default function App() {
           sectionTitle={legalModalSection || ''}
           onClose={() => setLegalModalSection(null)}
         />
+        {toastMessage && (
+          <div
+            role="status"
+            aria-live="polite"
+            className="fixed bottom-5 right-5 z-[130] max-w-md bg-inverse-surface text-inverse-on-surface px-4 py-3.5 rounded-2xl shadow-2xl border border-primary/30 flex items-start gap-3 animate-in fade-in slide-in-from-bottom-4 duration-200"
+          >
+            <span className="material-symbols-outlined text-primary-fixed-dim text-[22px] shrink-0 mt-0.5">
+              verified_user
+            </span>
+            <div className="flex flex-col gap-0.5">
+              <span className="font-title-sm font-bold text-white">
+                {toastMessage.title}
+              </span>
+              {toastMessage.subtitle && (
+                <span className="font-body-sm text-slate-300 text-[12px]">
+                  {toastMessage.subtitle}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
       </>
     );
   }

@@ -1,6 +1,6 @@
 {
-  "summary":  "Plan de implementación para programar el reporte semanal de métricas de plataforma por EmailJS en el Dashboard de Administración e incluir un enlace directo de aprobación de un clic (One-Click Admin Approval Link) en los correos enviados desde la portada al administrador (clientesbinweb@gmail.com).",
-  "updatedAt":  "2026-10-26T15:55:06.278977535Z",
+  "summary":  "Plan de implementación para autenticar a los administradores (clientesbinweb@gmail.com y somosbwos@gmail.com) exclusivamente mediante un Link Mágico de único uso enviado por EmailJS y ocultar por completo las direcciones de correo de administración y botones de acceso rápido del frontend público.",
+  "updatedAt":  "2026-10-26T16:42:05.575466724Z",
   "requestFeedback":  true,
   "userFacing":  true
 }

@@ -6,7 +6,8 @@ export type EmailNotificationType =
   | 'meeting_request'
   | 'access_request'
   | 'access_approved'
-  | 'weekly_report';
+  | 'weekly_report'
+  | 'admin_magic_link';
 
 export interface EmailNotificationPayload {
   type: EmailNotificationType;
@@ -77,6 +78,7 @@ const STORAGE_KEYS = {
   EMAILJS_CONFIG: 'bwos_b2b_emailjs_config_v1',
   WEEKLY_REPORT_SCHEDULE: 'bwos_b2b_weekly_report_schedule_v1',
   USED_APPROVAL_TOKENS: 'bwos_b2b_used_approval_tokens_v1',
+  USED_MAGIC_LOGIN_TOKENS: 'bwos_b2b_used_magic_login_tokens_v1',
 };
 
 export const DAY_OF_WEEK_LABELS: Record<number, string> = {
@@ -141,7 +143,75 @@ export function markApprovalTokenUsed(token: string): void {
 }
 
 /**
- * Generates a single-use (link de único uso) Approval URL for the Administrator (clientesbinweb@gmail.com)
+ * Generates a single-use Magic Link token (mlk_...) for Administrator authentication
+ */
+export function generateAdminMagicLoginToken(): string {
+  const randomPart =
+    typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID().replace(/-/g, '')
+      : `${Math.random().toString(36).slice(2)}${Math.random()
+          .toString(36)
+          .slice(2)}`;
+  return `mlk_${Date.now().toString(36)}_${randomPart.slice(0, 18)}`;
+}
+
+export function getUsedMagicLoginTokens(): Record<string, string> {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.USED_MAGIC_LOGIN_TOKENS);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+export function isMagicLoginTokenUsed(token?: string | null): boolean {
+  if (!token || !token.startsWith('mlk_')) return true;
+  const usedMap = getUsedMagicLoginTokens();
+  return Boolean(usedMap[token]);
+}
+
+export function markMagicLoginTokenUsed(token: string): void {
+  if (!token) return;
+  try {
+    const usedMap = getUsedMagicLoginTokens();
+    usedMap[token] = new Date().toISOString();
+    localStorage.setItem(
+      STORAGE_KEYS.USED_MAGIC_LOGIN_TOKENS,
+      JSON.stringify(usedMap)
+    );
+  } catch {
+    // ignore storage errors
+  }
+}
+
+/**
+ * Builds a single-use Magic Link URL for exclusive Administrator login via EmailJS
+ */
+export function buildAdminMagicLoginUrl(params: {
+  email: string;
+  fullName: string;
+  companyName: string;
+  role?: string;
+}): { magicUrl: string; token: string } {
+  const baseUrl = getAppBaseUrl();
+  const token = generateAdminMagicLoginToken();
+  const search = new URLSearchParams();
+  search.set('admin_action', 'magic_login');
+  search.set('token', token);
+  search.set('email', params.email.trim().toLowerCase());
+  search.set('name', params.fullName.trim());
+  search.set('company', params.companyName.trim());
+  if (params.role) {
+    search.set('role', params.role.trim());
+  }
+  return {
+    magicUrl: `${baseUrl}/?${search.toString()}`,
+    token,
+  };
+}
+
+/**
+ * Generates a single-use (link de único uso) Approval URL for the Administrator
  * to approve an invitation request directly from their email inbox.
  */
 export function buildAdminApprovalUrl(params: {
@@ -177,7 +247,7 @@ export function buildAdminApprovalUrl(params: {
 }
 
 /**
- * Generates a direct single-use Reject URL for the Administrator (clientesbinweb@gmail.com)
+ * Generates a direct single-use Reject URL for the Administrator
  */
 export function buildAdminRejectUrl(params: {
   email: string;
@@ -284,9 +354,11 @@ export async function sendB2BEmailNotification(
   const config = getEmailJSConfig();
   const ccAdmin = payload.ccAdminEmail || ADMIN_EMAIL;
 
-  // For access_request emails, use approvalUrl (single-use link) as the primary action link
+  // For access_request and admin_magic_link emails, use approvalUrl (single-use link) as the primary action link
   const effectiveActionOrJitsiUrl =
-    payload.type === 'access_request' && payload.approvalUrl
+    (payload.type === 'access_request' ||
+      payload.type === 'admin_magic_link') &&
+    payload.approvalUrl
       ? payload.approvalUrl
       : payload.jitsiRoomUrl ||
         payload.approvalUrl ||

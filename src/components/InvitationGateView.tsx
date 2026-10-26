@@ -2,13 +2,13 @@ import React, { useState } from 'react';
 import {
   ADMIN_EMAIL,
   ADMIN_USERS,
-  SECONDARY_ADMIN_EMAIL,
   SUMMIT_HERO_IMAGE,
   isAdminEmail,
 } from '../data/b2bData';
 import {
   AccessRequestItem,
   buildAdminApprovalUrl,
+  buildAdminMagicLoginUrl,
   buildAdminRejectUrl,
   findAccessRequestByEmail,
   generateOneTimeApprovalToken,
@@ -65,15 +65,64 @@ export const InvitationGateView: React.FC<InvitationGateViewProps> = ({
     companyName: string;
     message: string;
   } | null>(null);
+  const [magicLinkSentNotice, setMagicLinkSentNotice] = useState<{
+    email: string;
+    fullName: string;
+    companyName: string;
+  } | null>(null);
   const [requestSubmitted, setRequestSubmitted] = useState(false);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
 
-  const isEnteredAdmin = isAdminEmail(email);
+  const sendAdminMagicLink = async (params: {
+    email: string;
+    fullName: string;
+    companyName: string;
+    role?: string;
+  }) => {
+    setIsSendingEmail(true);
+    const cleanEmail = params.email.trim().toLowerCase();
+    const adminPreset = ADMIN_USERS[cleanEmail];
+    const resolvedRole =
+      params.role?.trim() ||
+      adminPreset?.role ||
+      'Administrador de Admisiones B2B';
+
+    const { magicUrl, token } = buildAdminMagicLoginUrl({
+      email: cleanEmail,
+      fullName: params.fullName.trim(),
+      companyName: params.companyName.trim(),
+      role: resolvedRole,
+    });
+
+    await sendB2BEmailNotification({
+      type: 'admin_magic_link',
+      toEmail: cleanEmail,
+      toName: params.fullName.trim(),
+      fromName: 'Seguridad & Admisiones BWOS Conectar B2B',
+      fromEmail: ADMIN_EMAIL,
+      companyName: params.companyName.trim(),
+      subject: `[LINK MÁGICO DE ÚNICO USO - DASHBOARD ADMIN] Acceso para ${params.fullName.trim()} (${params.companyName.trim()})`,
+      message: `Hola ${params.fullName.trim()} (${params.companyName.trim()}), se ha solicitado el ingreso al Dashboard de Administración de BWOS Conectar B2B con tu cuenta (${cleanEmail}).\n\n🔐 Haz clic en tu Link Mágico de único uso para abrir el Dashboard de Administración:\n${magicUrl}\n\nEste enlace es personal, intransferible y caduca automáticamente tras su primer uso.`,
+      jitsiRoomUrl: magicUrl,
+      approvalUrl: magicUrl,
+      oneTimeToken: token,
+      ccAdminEmail: cleanEmail,
+    });
+
+    onRefreshRequests();
+    setIsSendingEmail(false);
+    setMagicLinkSentNotice({
+      email: cleanEmail,
+      fullName: params.fullName.trim(),
+      companyName: params.companyName.trim(),
+    });
+  };
 
   const handleSubmitRequest = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
     setPendingStatusNotice(null);
+    setMagicLinkSentNotice(null);
 
     const cleanEmail = email.trim().toLowerCase();
 
@@ -87,43 +136,27 @@ export const InvitationGateView: React.FC<InvitationGateViewProps> = ({
         ? selectedSectors.join(' · ')
         : 'SaaS & Tecnología';
 
-    // Administrator accounts (clientesbinweb@gmail.com and somosbwos@gmail.com) enter directly to Dashboard Admin
+    // Administrator accounts NEVER enter directly from the public form; they receive a single-use Magic Link via EmailJS
     if (isAdminEmail(cleanEmail)) {
-      const adminPreset = ADMIN_USERS[cleanEmail];
-      const finalAdminName =
-        fullName.trim() || adminPreset?.fullName || 'Administrador BWOS';
-      const finalAdminCompany =
-        companyName.trim() ||
-        adminPreset?.companyName ||
-        'BWOS | Sitios Web & Merch';
-
-      if (!finalAdminName || !finalAdminCompany) {
+      if (!fullName.trim() || !companyName.trim()) {
         setErrorMsg(
-          'Por favor indica Nombre y Apellido, Empresa y Correo Electrónico para ingresar al Dashboard Administrador.'
+          'Por favor completa tu Nombre y Apellido, Empresa y Correo Electrónico para recibir tu Link Mágico de acceso.'
         );
         return;
       }
 
-      onGrantAccess({
-        fullName: finalAdminName,
-        companyName: finalAdminCompany,
+      await sendAdminMagicLink({
         email: cleanEmail,
-        corporateContact: corporateContact.trim() || cleanEmail,
-        role:
-          role.trim() ||
-          adminPreset?.role ||
-          'Administrador de Admisiones B2B',
-        sector: combinedSectorLabel,
-        sectorsList: selectedSectors,
-        requestedAt: new Date().toISOString(),
-        isAdmin: true,
+        fullName: fullName.trim(),
+        companyName: companyName.trim(),
+        role: role.trim(),
       });
       return;
     }
 
     if (!fullName.trim() || !companyName.trim() || !corporateContact.trim()) {
       setErrorMsg(
-        'Por favor completa tu Nombre y Apellido, Empresa, Correo Corporativo y WhatsApp para solicitar la aprobación del administrador.'
+        'Por favor completa tu Nombre y Apellido, Empresa, Correo Corporativo y WhatsApp para solicitar la aprobación de la Administración BWOS.'
       );
       return;
     }
@@ -169,11 +202,11 @@ export const InvitationGateView: React.FC<InvitationGateViewProps> = ({
       tokenUsed: false,
     });
 
-    // 2. Dispatch EmailJS notification to Administrator (clientesbinweb@gmail.com) with single-use approval link
+    // 2. Dispatch EmailJS notification to Administrator with single-use approval link
     await sendB2BEmailNotification({
       type: 'access_request',
       toEmail: ADMIN_EMAIL,
-      toName: 'Administrador General BWOS',
+      toName: 'Administración General BWOS',
       fromName: fullName.trim(),
       fromEmail: cleanEmail,
       companyName: companyName.trim(),
@@ -214,6 +247,7 @@ export const InvitationGateView: React.FC<InvitationGateViewProps> = ({
     e.preventDefault();
     setErrorMsg(null);
     setPendingStatusNotice(null);
+    setMagicLinkSentNotice(null);
 
     const cleanAuth = authorizedEmail.trim().toLowerCase();
     if (!cleanAuth || !cleanAuth.includes('@')) {
@@ -221,31 +255,19 @@ export const InvitationGateView: React.FC<InvitationGateViewProps> = ({
       return;
     }
 
-    // 1. Administrator Accounts (clientesbinweb@gmail.com or somosbwos@gmail.com)
+    if (!authorizedFullName.trim() || !authorizedCompany.trim()) {
+      setErrorMsg(
+        'Por favor indica tu Nombre y Apellido, Empresa y Correo Electrónico para validar tu ingreso.'
+      );
+      return;
+    }
+
+    // 1. Administrator Accounts: Send single-use Magic Link via EmailJS (Never open dashboard directly from front-end)
     if (isAdminEmail(cleanAuth)) {
-      const adminPreset = ADMIN_USERS[cleanAuth];
-      const resolvedName =
-        authorizedFullName.trim() || adminPreset?.fullName || '';
-      const resolvedCompany =
-        authorizedCompany.trim() || adminPreset?.companyName || '';
-
-      if (!resolvedName || !resolvedCompany) {
-        setErrorMsg(
-          'Por favor indica tu Nombre y Apellido, Empresa y Correo Electrónico para ingresar al Dashboard Administrador.'
-        );
-        return;
-      }
-
-      onGrantAccess({
-        fullName: resolvedName,
-        companyName: resolvedCompany,
+      await sendAdminMagicLink({
         email: cleanAuth,
-        corporateContact: cleanAuth,
-        role: adminPreset?.role || 'Administrador de Admisiones B2B',
-        sector: 'SaaS & Tecnología',
-        sectorsList: ['SaaS & Tecnología'],
-        requestedAt: new Date().toISOString(),
-        isAdmin: true,
+        fullName: authorizedFullName.trim(),
+        companyName: authorizedCompany.trim(),
       });
       return;
     }
@@ -256,7 +278,6 @@ export const InvitationGateView: React.FC<InvitationGateViewProps> = ({
       findAccessRequestByEmail(cleanAuth);
 
     if (existingReq && existingReq.status === 'approved') {
-      // Admin has granted OK! Allow entry and update Name/Company if provided
       onGrantAccess({
         fullName: authorizedFullName.trim() || existingReq.fullName,
         companyName: authorizedCompany.trim() || existingReq.companyName,
@@ -273,14 +294,7 @@ export const InvitationGateView: React.FC<InvitationGateViewProps> = ({
 
     if (existingReq && existingReq.status === 'rejected') {
       setErrorMsg(
-        `El acceso para ${cleanAuth} fue denegado o revocado por el administrador (${ADMIN_EMAIL} / ${SECONDARY_ADMIN_EMAIL}). Sin el OK del administrador no es posible ingresar.`
-      );
-      return;
-    }
-
-    if (!authorizedFullName.trim() || !authorizedCompany.trim()) {
-      setErrorMsg(
-        'Por favor indica tu Nombre y Apellido, Empresa y Correo Electrónico para enviar o validar tu pedido de invitación en el Dashboard Admin.'
+        `El acceso para ${cleanAuth} fue denegado o revocado por la Administración General BWOS. Sin el OK del administrador no es posible ingresar.`
       );
       return;
     }
@@ -336,12 +350,12 @@ export const InvitationGateView: React.FC<InvitationGateViewProps> = ({
     await sendB2BEmailNotification({
       type: 'access_request',
       toEmail: ADMIN_EMAIL,
-      toName: 'Administrador General BWOS',
+      toName: 'Administración General BWOS',
       fromName: applicantName,
       fromEmail: cleanAuth,
       companyName: companyLabel,
       subject: `[INGRESO AUTORIZADO RETENIDO - REQUIERE OK ADMIN] ${cleanAuth}`,
-      message: `El correo ${cleanAuth} (${companyLabel}) intentó ingresar por "Ingreso Autorizado". El acceso permanece bloqueado hasta que otorgues tu "OK / Aprobar Ingreso" obligatorio desde la cuenta administradora (${ADMIN_EMAIL}).\n\n✅ Aceptar a quien solicitó invitación (Link de único uso):\n${approvalUrl}\n\n❌ Rechazar solicitud:\n${rejectUrl}`,
+      message: `El ejecutivo ${applicantName} (${companyLabel} · ${cleanAuth}) intentó ingresar por "Ingreso Autorizado". El acceso permanece bloqueado hasta que otorgues tu "OK / Aprobar Ingreso" obligatorio desde la Administración General BWOS.\n\n✅ Aceptar a quien solicitó invitación (Link de único uso):\n${approvalUrl}\n\n❌ Rechazar solicitud:\n${rejectUrl}`,
       jitsiRoomUrl: approvalUrl,
       approvalUrl,
       oneTimeToken: freshToken,
@@ -355,7 +369,7 @@ export const InvitationGateView: React.FC<InvitationGateViewProps> = ({
     setPendingStatusNotice({
       email: cleanAuth,
       companyName: companyLabel,
-      message: `Sin el "OK" obligatorio del administrador (${ADMIN_EMAIL}) no puedes ingresar. Hemos enviado una notificación por EmailJS al administrador con un enlace de único uso para aceptar tu invitación (${cleanAuth}). Una vez que el administrador dé el OK, podrás ingresar aquí.`,
+      message: `Sin el "OK" obligatorio de la Administración General BWOS no puedes ingresar. Hemos enviado una notificación por EmailJS con un enlace de único uso para evaluar tu invitación (${cleanAuth}). Una vez que la administración dé el OK, podrás ingresar aquí.`,
     });
   };
 
@@ -368,7 +382,7 @@ export const InvitationGateView: React.FC<InvitationGateViewProps> = ({
         onResetDemo={onResetDemo}
       />
 
-      {/* Minimal Institutional Gate Header (Zero Private Data Exposed) */}
+      {/* Minimal Institutional Gate Header (Zero Private Data or Admin Emails Exposed) */}
       <header className="w-full bg-surface-container-lowest border-b border-surface-container-high">
         <div className="max-w-[1440px] mx-auto px-4 sm:px-8 py-3.5 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -387,8 +401,7 @@ export const InvitationGateView: React.FC<InvitationGateViewProps> = ({
                 </span>
               </div>
               <span className="font-label-sm text-on-surface-variant block">
-                Acceso por Aceptación Obligatoria del Administrador (
-                {ADMIN_EMAIL})
+                Acceso por Aceptación Obligatoria · Administración General BWOS
               </span>
             </div>
           </div>
@@ -398,7 +411,7 @@ export const InvitationGateView: React.FC<InvitationGateViewProps> = ({
               <span className="material-symbols-outlined text-[16px] text-primary">
                 verified_user
               </span>
-              <span>Requiere OK del Administrador para ingresar</span>
+              <span>Requiere OK de Administración BWOS para ingresar</span>
             </span>
 
             <button
@@ -428,7 +441,7 @@ export const InvitationGateView: React.FC<InvitationGateViewProps> = ({
               <span className="material-symbols-outlined text-[18px]">
                 admin_panel_settings
               </span>
-              <span>Admisión Controlada por Administrador</span>
+              <span>Admisión Controlada · Administración BWOS</span>
             </div>
 
             <h1 className="text-[28px] sm:text-[36px] font-extrabold text-on-surface leading-[1.15] tracking-tight">
@@ -440,8 +453,8 @@ export const InvitationGateView: React.FC<InvitationGateViewProps> = ({
               por <strong>formulario de invitación</strong> como por{' '}
               <strong>Ingreso Autorizado</strong>— requiere la{' '}
               <strong>
-                respuesta y aprobación obligatoria ("OK") del administrador (
-                {ADMIN_EMAIL})
+                respuesta y aprobación obligatoria ("OK") de la Administración
+                General BWOS
               </strong>
               . Sin ese OK, ningún dato del directorio es visible.
             </p>
@@ -457,7 +470,7 @@ export const InvitationGateView: React.FC<InvitationGateViewProps> = ({
               <div className="absolute inset-0 bg-gradient-to-t from-[#0f172a] via-[#0f172a]/75 to-transparent p-5 flex flex-col justify-between">
                 <div className="flex items-center justify-between gap-2">
                   <span className="px-2.5 py-1 rounded-md bg-amber-400/20 border border-amber-400/40 text-amber-300 font-label-sm uppercase">
-                    Bloqueado hasta OK del Administrador
+                    Bloqueado hasta OK de Administración BWOS
                   </span>
                   <span className="material-symbols-outlined text-white/80 text-[22px]">
                     lock_person
@@ -465,11 +478,11 @@ export const InvitationGateView: React.FC<InvitationGateViewProps> = ({
                 </div>
                 <div>
                   <p className="font-title-md text-white font-bold">
-                    0 datos visibles sin aceptación de {ADMIN_EMAIL}
+                    0 datos visibles sin aceptación de Administración BWOS
                   </p>
                   <p className="font-body-sm text-slate-300 mt-0.5">
-                    Toda solicitud envía un aviso automático por EmailJS al
-                    administrador y aguarda su confirmación para habilitar el
+                    Toda solicitud envía un aviso automático por EmailJS a la
+                    administración y aguarda su confirmación para habilitar el
                     ingreso.
                   </p>
                 </div>
@@ -486,7 +499,7 @@ export const InvitationGateView: React.FC<InvitationGateViewProps> = ({
                   OK Obligatorio
                 </p>
                 <p className="font-body-sm text-on-surface-variant text-[11px]">
-                  Validación previa por {ADMIN_EMAIL}.
+                  Validación previa por Administración BWOS.
                 </p>
               </div>
               <div className="bg-surface-container-lowest p-3.5 rounded-xl border border-surface-container-high">
@@ -525,6 +538,7 @@ export const InvitationGateView: React.FC<InvitationGateViewProps> = ({
                     setMode('request');
                     setErrorMsg(null);
                     setPendingStatusNotice(null);
+                    setMagicLinkSentNotice(null);
                   }}
                   className={`px-4 py-2 rounded-lg font-title-md text-[14px] transition-all cursor-pointer flex items-center gap-1.5 ${
                     mode === 'request'
@@ -544,6 +558,7 @@ export const InvitationGateView: React.FC<InvitationGateViewProps> = ({
                     setMode('authorized');
                     setErrorMsg(null);
                     setPendingStatusNotice(null);
+                    setMagicLinkSentNotice(null);
                   }}
                   className={`px-4 py-2 rounded-lg font-title-md text-[14px] transition-all cursor-pointer flex items-center gap-1.5 ${
                     mode === 'authorized'
@@ -552,7 +567,7 @@ export const InvitationGateView: React.FC<InvitationGateViewProps> = ({
                   }`}
                 >
                   <span className="material-symbols-outlined text-[18px]">
-                    admin_panel_settings
+                    verified_user
                   </span>
                   <span>Ingreso Autorizado (Con OK Admin)</span>
                 </button>
@@ -571,6 +586,44 @@ export const InvitationGateView: React.FC<InvitationGateViewProps> = ({
               </div>
             )}
 
+            {magicLinkSentNotice && (
+              <div
+                role="status"
+                className="p-5 rounded-2xl bg-primary-fixed/40 border border-primary/30 text-on-surface flex flex-col gap-3"
+              >
+                <div className="flex items-center gap-2.5 font-title-md font-bold text-primary">
+                  <span className="material-symbols-outlined text-primary text-[24px]">
+                    mark_email_Lock
+                  </span>
+                  <span>
+                    Link Mágico de Único Uso Enviado por EmailJS
+                  </span>
+                </div>
+                <p className="font-body-sm text-on-surface leading-relaxed">
+                  Por seguridad, el acceso al{' '}
+                  <strong>Dashboard de Administración</strong> no está abierto
+                  directamente desde el formulario público. Hemos enviado un{' '}
+                  <strong>Link Mágico de acceso único</strong> a la bandeja de
+                  entrada de <strong>{magicLinkSentNotice.email}</strong>.
+                </p>
+                <div className="p-3 rounded-xl bg-surface-container-lowest border border-surface-container-high font-body-sm text-on-surface-variant flex flex-col gap-1">
+                  <span>
+                    • <strong>Nombre y Apellido:</strong>{' '}
+                    {magicLinkSentNotice.fullName}
+                  </span>
+                  <span>
+                    • <strong>Empresa:</strong>{' '}
+                    {magicLinkSentNotice.companyName}
+                  </span>
+                  <span>
+                    • <strong>Instrucción:</strong> Abre tu correo y haz clic en
+                    el enlace recibido para iniciar sesión en el Dashboard
+                    Administrador.
+                  </span>
+                </div>
+              </div>
+            )}
+
             {pendingStatusNotice && (
               <div
                 role="status"
@@ -581,8 +634,8 @@ export const InvitationGateView: React.FC<InvitationGateViewProps> = ({
                     hourglass_top
                   </span>
                   <span>
-                    Ingreso Retenido · Requiere "OK" Obligatorio del
-                    Administrador
+                    Ingreso Retenido · Requiere "OK" Obligatorio de
+                    Administración BWOS
                   </span>
                 </div>
                 <p className="font-body-sm text-amber-900 leading-relaxed">
@@ -590,7 +643,9 @@ export const InvitationGateView: React.FC<InvitationGateViewProps> = ({
                 </p>
                 <div className="pt-1 flex flex-wrap items-center gap-2 text-[12px] text-amber-800 font-bold">
                   <span>• Cuenta evaluada: {pendingStatusNotice.email}</span>
-                  <span>• Estado actual: PENDIENTE DE OK ({ADMIN_EMAIL})</span>
+                  <span>
+                    • Estado actual: PENDIENTE DE OK (Administración BWOS)
+                  </span>
                 </div>
               </div>
             )}
@@ -606,22 +661,22 @@ export const InvitationGateView: React.FC<InvitationGateViewProps> = ({
                   <div className="flex flex-col gap-1.5 max-w-lg">
                     <span className="font-label-sm uppercase tracking-wider text-amber-700 font-extrabold">
                       Notificación EmailJS Enviada · Esperando OK Obligatorio
-                      del Administrador
+                      de Administración BWOS
                     </span>
                     <h2 className="font-headline-md text-on-surface">
                       Solicitud registrada para {companyName}
                     </h2>
                     <p className="font-body-md text-on-surface-variant mt-1">
-                      Hemos enviado tu solicitud por <strong>EmailJS</strong> al
-                      administrador (<strong>{ADMIN_EMAIL}</strong>) para el
+                      Hemos enviado tu solicitud por <strong>EmailJS</strong> a
+                      la <strong>Administración General BWOS</strong> para el
                       correo <strong>{email}</strong> en el/los sector(es):{' '}
                       <strong>{selectedSectors.join(', ')}</strong>.
                     </p>
                     <p className="font-body-sm text-on-surface bg-amber-50 border border-amber-300 rounded-xl p-3 mt-2">
                       <strong>Importante:</strong> Sin la respuesta y aceptación
-                      ("OK") del administrador <strong>{ADMIN_EMAIL}</strong>,
-                      no es posible ingresar. Una vez que el administrador dé el
-                      OK a tu cuenta, podrás entrar desde la pestaña{' '}
+                      ("OK") de la <strong>Administración General BWOS</strong>,
+                      no es posible ingresar. Una vez que tu cuenta sea
+                      aprobada, podrás entrar desde la pestaña{' '}
                       <strong>"Ingreso Autorizado"</strong>.
                     </p>
                   </div>
@@ -630,6 +685,8 @@ export const InvitationGateView: React.FC<InvitationGateViewProps> = ({
                     <button
                       type="button"
                       onClick={() => {
+                        setAuthorizedFullName(fullName.trim());
+                        setAuthorizedCompany(companyName.trim());
                         setAuthorizedEmail(email.trim());
                         setMode('authorized');
                       }}
@@ -763,21 +820,6 @@ export const InvitationGateView: React.FC<InvitationGateViewProps> = ({
                     label="Sector Industrial de Interés (Selecciona hasta 2)"
                   />
 
-                  {isEnteredAdmin && (
-                    <div className="p-3 rounded-xl bg-secondary/10 border border-secondary/30 text-secondary font-body-sm flex items-center gap-2">
-                      <span className="material-symbols-outlined text-[18px]">
-                        verified
-                      </span>
-                      <span>
-                        Cuenta de Administrador reconocida (
-                        <strong>{email.trim().toLowerCase()}</strong>). Al
-                        enviar ingresarás directamente al{' '}
-                        <strong>Dashboard de Administración</strong> para
-                        recibir y aprobar los pedidos de invitación.
-                      </span>
-                    </div>
-                  )}
-
                   {/* Red Legal Notice Placeholder for Lawyers */}
                   <InlineLegalRedBanner
                     compact
@@ -795,9 +837,7 @@ export const InvitationGateView: React.FC<InvitationGateViewProps> = ({
                     </span>
                     <span>
                       {isSendingEmail
-                        ? 'Enviando solicitud al Dashboard Admin y EmailJS...'
-                        : isEnteredAdmin
-                        ? 'Ingresar al Dashboard Administrador'
+                        ? 'Enviando solicitud por EmailJS...'
                         : 'Quiero ingresar, solicito invitación'}
                     </span>
                   </button>
@@ -809,56 +849,16 @@ export const InvitationGateView: React.FC<InvitationGateViewProps> = ({
                 className="flex flex-col gap-4 py-2"
                 noValidate
               >
-                <div className="p-3.5 rounded-xl bg-surface-container-low border border-surface-container-high flex flex-col gap-2.5">
-                  <div className="flex items-start gap-2.5">
-                    <span className="material-symbols-outlined text-primary text-[20px] mt-0.5">
-                      verified_user
-                    </span>
-                    <div className="font-body-sm text-on-surface-variant">
-                      <strong>
-                        Ingreso Autorizado y Acceso al Dashboard Admin:
-                      </strong>{' '}
-                      Indica tu <strong>Nombre y Apellido</strong>,{' '}
-                      <strong>Empresa</strong> y{' '}
-                      <strong>Correo Electrónico</strong>. Las cuentas
-                      administradoras (<strong>{SECONDARY_ADMIN_EMAIL}</strong>{' '}
-                      y <strong>{ADMIN_EMAIL}</strong>) ingresan directamente al{' '}
-                      <strong>Dashboard de Administración</strong> para recibir
-                      y aprobar allí mismo los pedidos de invitación.
-                    </div>
-                  </div>
-
-                  {/* Quick-Fill Buttons for Admin Accounts */}
-                  <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-surface-container-high">
-                    <span className="font-label-sm text-on-surface-variant font-bold">
-                      Acceso Rápido Admin:
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const preset = ADMIN_USERS[SECONDARY_ADMIN_EMAIL];
-                        setAuthorizedFullName(preset.fullName);
-                        setAuthorizedCompany(preset.companyName);
-                        setAuthorizedEmail(preset.email);
-                        setErrorMsg(null);
-                      }}
-                      className="px-3 py-1 rounded-lg bg-primary/10 hover:bg-primary text-primary hover:text-on-primary font-label-sm font-bold transition-colors cursor-pointer"
-                    >
-                      Cargar {SECONDARY_ADMIN_EMAIL}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const preset = ADMIN_USERS[ADMIN_EMAIL];
-                        setAuthorizedFullName(preset.fullName);
-                        setAuthorizedCompany(preset.companyName);
-                        setAuthorizedEmail(preset.email);
-                        setErrorMsg(null);
-                      }}
-                      className="px-3 py-1 rounded-lg bg-surface-container-high hover:bg-primary text-on-surface hover:text-on-primary font-label-sm font-bold transition-colors cursor-pointer"
-                    >
-                      Cargar {ADMIN_EMAIL}
-                    </button>
+                <div className="p-3.5 rounded-xl bg-surface-container-low border border-surface-container-high flex items-start gap-2.5">
+                  <span className="material-symbols-outlined text-primary text-[20px] mt-0.5">
+                    verified_user
+                  </span>
+                  <div className="font-body-sm text-on-surface-variant">
+                    <strong>Ingreso Autorizado (Con OK Admin):</strong> Indica
+                    tu <strong>Nombre y Apellido</strong>,{' '}
+                    <strong>Empresa</strong> y{' '}
+                    <strong>Correo Electrónico Corporativo</strong> previamente
+                    autorizado por la <strong>Administración General BWOS</strong>.
                   </div>
                 </div>
 
@@ -913,41 +913,11 @@ export const InvitationGateView: React.FC<InvitationGateViewProps> = ({
                     type="email"
                     required
                     value={authorizedEmail}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setAuthorizedEmail(val);
-                      const cleanVal = val.trim().toLowerCase();
-                      if (ADMIN_USERS[cleanVal]) {
-                        if (!authorizedFullName.trim()) {
-                          setAuthorizedFullName(ADMIN_USERS[cleanVal].fullName);
-                        }
-                        if (!authorizedCompany.trim()) {
-                          setAuthorizedCompany(
-                            ADMIN_USERS[cleanVal].companyName
-                          );
-                        }
-                      }
-                    }}
-                    placeholder="Ej. somosbwos@gmail.com o tu correo corporativo"
+                    onChange={(e) => setAuthorizedEmail(e.target.value)}
+                    placeholder="nombre@tuempresa.com"
                     className="w-full px-4 py-3.5 rounded-xl bg-surface border border-outline-variant font-body-md text-on-surface focus:outline-none focus:border-primary"
                   />
                 </div>
-
-                {isAdminEmail(authorizedEmail) && (
-                  <div className="p-3 rounded-xl bg-secondary/10 border border-secondary/30 text-secondary font-body-sm flex items-center gap-2">
-                    <span className="material-symbols-outlined text-[18px]">
-                      admin_panel_settings
-                    </span>
-                    <span>
-                      Acceso de Administrador detectado para{' '}
-                      <strong>{authorizedEmail.trim().toLowerCase()}</strong> (
-                      {authorizedFullName || 'Asesor Digital BWOS'} ·{' '}
-                      {authorizedCompany || 'BWOS | Sitios Web & Merch'}).
-                      Ingresarás directo al{' '}
-                      <strong>Dashboard de Administración</strong>.
-                    </span>
-                  </div>
-                )}
 
                 <button
                   type="submit"
@@ -959,9 +929,7 @@ export const InvitationGateView: React.FC<InvitationGateViewProps> = ({
                   </span>
                   <span>
                     {isSendingEmail
-                      ? 'Verificando autorización con Administrador...'
-                      : isAdminEmail(authorizedEmail)
-                      ? 'Ingresar al Dashboard Administrador'
+                      ? 'Verificando autorización...'
                       : 'Validar OK del Administrador e Ingresar'}
                   </span>
                 </button>
@@ -971,13 +939,13 @@ export const InvitationGateView: React.FC<InvitationGateViewProps> = ({
         </div>
       </main>
 
-      {/* Dark 4-Column Institutional Footer (Image 2) */}
+      {/* Dark 4-Column Institutional Footer */}
       <InstitutionalFooter
         hasAccess={false}
         onOpenLegalNotice={onOpenLegalNotice}
         onProtectedLinkClick={() => {
           setErrorMsg(
-            `El acceso al Directorio BW2, Conexiones, Agenda y Salas Virtuales requiere invitación con el OK obligatorio del administrador (${ADMIN_EMAIL}).`
+            'El acceso al Directorio BW2, Conexiones, Agenda y Salas Virtuales requiere invitación con el OK obligatorio de la Administración General BWOS.'
           );
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}

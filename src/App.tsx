@@ -2,6 +2,10 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { AccreditationView } from './components/AccreditationView';
 import { IncomingCallModal } from './components/IncomingCallModal';
 import {
+  InvitationGateView,
+  InvitationRequestData,
+} from './components/InvitationGateView';
+import {
   InlineLegalRedBanner,
   LegalRedNoticeModal,
 } from './components/LegalRedNoticeModal';
@@ -28,12 +32,24 @@ type MainView =
   | 'virtual-room';
 
 const STORAGE_KEYS = {
+  INVITATION_GRANTED: 'bwos_b2b_invitation_granted_v1',
   PROFILE: 'bwos_b2b_user_profile_v1',
   COMPANIES: 'bwos_b2b_companies_v1',
   MEETINGS: 'bwos_b2b_meetings_v1',
 };
 
 export default function App() {
+  // Mandatory Invitation Gate State (Default false: zero data shown until unlocked)
+  const [hasInvitationAccess, setHasInvitationAccess] = useState<boolean>(
+    () => {
+      try {
+        return localStorage.getItem(STORAGE_KEYS.INVITATION_GRANTED) === 'true';
+      } catch {
+        return false;
+      }
+    }
+  );
+
   // User Profile State
   const [userProfile, setUserProfile] = useState<UserProfile | null>(() => {
     try {
@@ -563,10 +579,47 @@ export default function App() {
     );
   };
 
+  const handleGrantInvitationAccess = (reqData?: InvitationRequestData) => {
+    try {
+      localStorage.setItem(STORAGE_KEYS.INVITATION_GRANTED, 'true');
+    } catch {
+      // ignore storage errors
+    }
+    if (reqData && !userProfile) {
+      setUserProfile({
+        fullName: reqData.fullName,
+        companyName: reqData.companyName,
+        countryCode: '+52',
+        phone: reqData.corporateContact,
+        offering:
+          'Soluciones e infraestructura corporativa validada para rueda de negocios B2B.',
+        demand:
+          'Alianzas comerciales y proveedores homologados en Latinoamérica.',
+        accreditedAt: reqData.requestedAt,
+      });
+    }
+    setHasInvitationAccess(true);
+    showToast(
+      '¡Invitación Validada!',
+      'Bienvenido al ecosistema privado BWOS Conectar B2B.'
+    );
+  };
+
+  const handleLockToInvitationGate = () => {
+    try {
+      localStorage.removeItem(STORAGE_KEYS.INVITATION_GRANTED);
+    } catch {
+      // ignore storage errors
+    }
+    setHasInvitationAccess(false);
+  };
+
   const handleResetDemoData = () => {
+    localStorage.removeItem(STORAGE_KEYS.INVITATION_GRANTED);
     localStorage.removeItem(STORAGE_KEYS.PROFILE);
     localStorage.removeItem(STORAGE_KEYS.COMPANIES);
     localStorage.removeItem(STORAGE_KEYS.MEETINGS);
+    setHasInvitationAccess(false);
     setUserProfile(null);
     setCompanies(INITIAL_COMPANIES);
     setMeetings(INITIAL_MEETINGS);
@@ -575,10 +628,6 @@ export default function App() {
     setOnlyImmediateMatch(false);
     setMinMatchFilter(0);
     setCountryFilter('ALL');
-    showToast(
-      'Datos de demostración restablecidos',
-      'El catálogo y las conexiones volvieron a su estado original.'
-    );
   };
 
   const resetFilters = () => {
@@ -590,77 +639,95 @@ export default function App() {
     setCurrentPage(1);
   };
 
+  // MANDATORY FIRST SCREEN: If user has not requested/validated an invitation, render ONLY the Invitation Gate (zero platform data exposed)
+  if (!hasInvitationAccess) {
+    return (
+      <>
+        <InvitationGateView
+          onGrantAccess={handleGrantInvitationAccess}
+          onOpenLegalNotice={(sec) => setLegalModalSection(sec)}
+          onResetDemo={handleResetDemoData}
+        />
+        <LegalRedNoticeModal
+          isOpen={Boolean(legalModalSection)}
+          sectionTitle={legalModalSection || ''}
+          onClose={() => setLegalModalSection(null)}
+        />
+      </>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-surface text-on-surface font-body-md flex flex-col justify-between pb-20 lg:pb-0">
+    <div className="min-h-screen w-full max-w-[100vw] overflow-x-hidden bg-surface text-on-surface font-body-md flex flex-col justify-between pb-20 lg:pb-0">
       {/* Persistent Top Notice: Plataforma en Desarrollo (MVP Piloto) */}
       <MvpDevelopmentBanner
         onOpenLegalNotice={(sec) => setLegalModalSection(sec)}
         onResetDemo={handleResetDemoData}
       />
 
-      {/* Top Institutional Navigation Header */}
-      <header className="sticky top-0 left-0 right-0 z-40 bg-surface-container-lowest/95 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] border-b border-surface-container-high">
-        <div className="h-16 w-full max-w-[1920px] mx-auto px-4 md:px-6 flex items-center justify-between gap-3">
+      {/* Top Institutional Navigation Header (Responsive Flex-Wrap without Horizontal Scroll) */}
+      <header className="sticky top-0 left-0 right-0 z-40 w-full bg-surface-container-lowest/95 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] border-b border-surface-container-high">
+        <div className="w-full max-w-[1600px] mx-auto px-3 sm:px-5 py-2.5 flex flex-wrap items-center justify-between gap-2">
           {/* Left Brand & Live Counter */}
-          <div className="flex items-center gap-3 sm:gap-4 shrink-0">
+          <div className="flex items-center gap-2.5 shrink-0">
             <button
               type="button"
               onClick={() => setActiveView('lobby')}
-              className="flex items-center gap-2.5 text-left group cursor-pointer"
+              className="flex items-center gap-2 text-left group cursor-pointer"
             >
-              <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+              <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform shrink-0">
                 {activeView === 'bw2-directory' ||
                 activeView === 'accreditation' ? (
-                  <span className="text-on-primary font-headline-sm font-black tracking-tighter text-[14px]">
+                  <span className="text-on-primary font-headline-sm font-black tracking-tighter text-[13px]">
                     BW2
                   </span>
                 ) : (
-                  <span className="material-symbols-outlined text-on-primary text-[20px]">
+                  <span className="material-symbols-outlined text-on-primary text-[19px]">
                     hub
                   </span>
                 )}
               </div>
               <div className="flex flex-col">
                 <div className="flex items-center gap-1.5">
-                  <span className="font-headline-sm text-on-surface leading-tight tracking-tight">
+                  <span className="font-title-md text-on-surface leading-tight tracking-tight font-extrabold">
                     BWOS
                   </span>
-                  <span className="hidden sm:inline-block px-1.5 py-0.5 rounded bg-primary/10 text-primary font-label-sm uppercase">
+                  <span className="hidden sm:inline-block px-1.5 py-0.5 rounded bg-primary/10 text-primary font-label-sm uppercase text-[10px]">
                     Summit 2025
                   </span>
                 </div>
-                <span className="font-label-sm text-primary uppercase tracking-wider font-bold">
+                <span className="font-label-sm text-primary uppercase tracking-wider font-bold text-[10px]">
                   Conectar B2B
                 </span>
               </div>
             </button>
 
-            <div className="hidden xl:flex items-center gap-1.5 bg-surface-container-low px-3 py-1 rounded-full border border-surface-container-high">
+            <div className="hidden 2xl:flex items-center gap-1.5 bg-surface-container-low px-2.5 py-1 rounded-full border border-surface-container-high">
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75" />
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-secondary" />
               </span>
-              <span className="font-label-sm text-secondary font-bold tabular-nums">
-                {activeExecsCount} directivos activos
+              <span className="font-label-sm text-secondary font-bold tabular-nums text-[11px]">
+                {activeExecsCount} activos
               </span>
             </div>
           </div>
 
-          {/* Center Desktop Navigation Tabs */}
+          {/* Center Desktop Navigation Tabs (Wraps cleanly without horizontal scroll) */}
           <nav
             aria-label="Navegación Principal B2B"
-            className="hidden lg:flex items-center gap-1"
+            className="hidden lg:flex flex-wrap items-center justify-center gap-1"
           >
             <button
               type="button"
               onClick={() => setActiveView('accreditation')}
-              className={`px-3.5 py-2 rounded-lg font-title-md text-[14px] transition-colors flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+              className={`px-2.5 py-1.5 rounded-lg font-title-md text-[13px] transition-colors flex items-center gap-1 cursor-pointer ${
                 activeView === 'accreditation'
                   ? 'bg-primary-container text-on-primary font-bold shadow-xs'
                   : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
               }`}
             >
-              <span className="material-symbols-outlined text-[18px]">
+              <span className="material-symbols-outlined text-[17px]">
                 badge
               </span>
               <span>Acreditación</span>
@@ -669,13 +736,13 @@ export default function App() {
             <button
               type="button"
               onClick={() => setActiveView('lobby')}
-              className={`px-3.5 py-2 rounded-lg font-title-md text-[14px] transition-colors flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+              className={`px-2.5 py-1.5 rounded-lg font-title-md text-[13px] transition-colors flex items-center gap-1 cursor-pointer ${
                 activeView === 'lobby'
                   ? 'bg-primary-container text-on-primary font-bold shadow-xs'
                   : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
               }`}
             >
-              <span className="material-symbols-outlined text-[18px]">
+              <span className="material-symbols-outlined text-[17px]">
                 storefront
               </span>
               <span>Lobby Virtual</span>
@@ -684,13 +751,13 @@ export default function App() {
             <button
               type="button"
               onClick={() => setActiveView('bw2-directory')}
-              className={`px-3.5 py-2 rounded-lg font-title-md text-[14px] transition-colors flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+              className={`px-2.5 py-1.5 rounded-lg font-title-md text-[13px] transition-colors flex items-center gap-1 cursor-pointer ${
                 activeView === 'bw2-directory'
                   ? 'bg-primary-container text-on-primary font-bold shadow-xs'
                   : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
               }`}
             >
-              <span className="material-symbols-outlined text-[18px]">
+              <span className="material-symbols-outlined text-[17px]">
                 grid_view
               </span>
               <span>Directorio BW2</span>
@@ -699,18 +766,18 @@ export default function App() {
             <button
               type="button"
               onClick={() => setActiveView('connections')}
-              className={`px-3.5 py-2 rounded-lg font-title-md text-[14px] transition-colors flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+              className={`px-2.5 py-1.5 rounded-lg font-title-md text-[13px] transition-colors flex items-center gap-1 cursor-pointer ${
                 activeView === 'connections'
                   ? 'bg-primary-container text-on-primary font-bold shadow-xs'
                   : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
               }`}
             >
-              <span className="material-symbols-outlined text-[18px]">
+              <span className="material-symbols-outlined text-[17px]">
                 handshake
               </span>
-              <span>Mis Conexiones</span>
+              <span>Conexiones</span>
               {connectedCompanies.length > 0 && (
-                <span className="px-1.5 py-0.2 rounded-full bg-secondary-container text-on-secondary-container text-[11px] font-extrabold tabular-nums">
+                <span className="px-1.5 py-0.2 rounded-full bg-secondary-container text-on-secondary-container text-[10px] font-extrabold tabular-nums">
                   {connectedCompanies.length}
                 </span>
               )}
@@ -719,17 +786,17 @@ export default function App() {
             <button
               type="button"
               onClick={() => setActiveView('agenda')}
-              className={`px-3.5 py-2 rounded-lg font-title-md text-[14px] transition-colors flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+              className={`px-2.5 py-1.5 rounded-lg font-title-md text-[13px] transition-colors flex items-center gap-1 cursor-pointer ${
                 activeView === 'agenda'
                   ? 'bg-primary-container text-on-primary font-bold shadow-xs'
                   : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
               }`}
             >
-              <span className="material-symbols-outlined text-[18px]">
+              <span className="material-symbols-outlined text-[17px]">
                 calendar_month
               </span>
-              <span>Agenda B2B</span>
-              <span className="px-1.5 py-0.2 rounded-full bg-primary-fixed text-primary text-[11px] font-extrabold tabular-nums">
+              <span>Agenda</span>
+              <span className="px-1.5 py-0.2 rounded-full bg-primary-fixed text-primary text-[10px] font-extrabold tabular-nums">
                 {meetings.length}
               </span>
             </button>
@@ -737,31 +804,31 @@ export default function App() {
             <button
               type="button"
               onClick={() => setActiveView('virtual-room')}
-              className={`px-3.5 py-2 rounded-lg font-title-md text-[14px] transition-colors flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+              className={`px-2.5 py-1.5 rounded-lg font-title-md text-[13px] transition-colors flex items-center gap-1 cursor-pointer ${
                 activeView === 'virtual-room'
                   ? 'bg-secondary text-on-secondary font-bold shadow-xs'
                   : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
               }`}
             >
-              <span className="material-symbols-outlined text-[18px]">
+              <span className="material-symbols-outlined text-[17px]">
                 videocam
               </span>
-              <span>Sala Virtual (Jitsi)</span>
+              <span>Sala Jitsi</span>
             </button>
           </nav>
 
-          {/* Right Quick Actions: Simulate Incoming Call, Legal Red Notice & User Profile */}
-          <div className="flex items-center gap-2 shrink-0">
+          {/* Right Quick Actions: Simulate Call, Legal Red Notice, Lock Gate & Profile */}
+          <div className="flex flex-wrap items-center gap-1.5 shrink-0">
             <button
               type="button"
               onClick={() => handleTriggerIncomingCall()}
-              className="h-9 px-3 rounded-lg bg-secondary/15 hover:bg-secondary hover:text-on-secondary text-secondary font-label-md font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+              className="h-8 px-2.5 rounded-lg bg-secondary/15 hover:bg-secondary hover:text-on-secondary text-secondary font-label-sm font-bold flex items-center gap-1 transition-all cursor-pointer"
               title="Probar modal de Videollamada B2B Entrante"
             >
-              <span className="material-symbols-outlined text-[18px] animate-bounce">
+              <span className="material-symbols-outlined text-[16px] animate-bounce">
                 ring_volume
               </span>
-              <span className="hidden sm:inline">Llamada Entrante</span>
+              <span className="hidden xl:inline">Llamada Entrante</span>
             </button>
 
             <button
@@ -771,31 +838,43 @@ export default function App() {
                   'Consulta General con Abogados · Marco Legal y Privacidad B2B'
                 )
               }
-              className="h-9 px-2.5 rounded-lg bg-[#ffdad6] hover:bg-[#ba1a1a] text-[#93000a] hover:text-white border border-[#ba1a1a]/40 font-label-sm flex items-center gap-1 transition-colors cursor-pointer"
+              className="h-8 px-2.5 rounded-lg bg-[#ffdad6] hover:bg-[#ba1a1a] text-[#93000a] hover:text-white border border-[#ba1a1a]/40 font-label-sm flex items-center gap-1 transition-colors cursor-pointer"
               title="Ver aviso en rojo pendiente de abogados"
             >
-              <span className="material-symbols-outlined text-[16px]">
+              <span className="material-symbols-outlined text-[15px]">
                 gavel
               </span>
-              <span className="hidden md:inline">Abogados (Pendiente)</span>
+              <span className="hidden xl:inline">Abogados</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleLockToInvitationGate}
+              className="h-8 px-2.5 rounded-lg bg-surface-container-high hover:bg-inverse-surface text-on-surface hover:text-white font-label-sm flex items-center gap-1 transition-colors cursor-pointer"
+              title="Volver a la pantalla inicial 'Quiero ingresar, solicito invitación' (Oculta todos los datos)"
+            >
+              <span className="material-symbols-outlined text-[15px]">
+                lock
+              </span>
+              <span className="hidden md:inline">Bloquear / Invitación</span>
             </button>
 
             <button
               type="button"
               onClick={() => setActiveView('accreditation')}
-              className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-xl hover:bg-surface-container-low transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 pl-1 pr-2 py-1 rounded-xl hover:bg-surface-container-low transition-colors cursor-pointer"
               title="Ver o editar Ficha de Acreditación"
             >
-              <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-on-primary">
-                <span className="material-symbols-outlined text-[18px]">
+              <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center text-on-primary shrink-0">
+                <span className="material-symbols-outlined text-[16px]">
                   person
                 </span>
               </div>
               <div className="hidden 2xl:flex flex-col text-left">
-                <span className="font-label-md text-on-surface leading-tight font-bold truncate max-w-[130px]">
+                <span className="font-label-sm text-on-surface leading-tight font-bold truncate max-w-[110px]">
                   {userProfile?.fullName || 'Ing. Alberto Ruiz'}
                 </span>
-                <span className="font-label-sm text-on-surface-variant truncate max-w-[130px]">
+                <span className="font-label-sm text-on-surface-variant text-[10px] truncate max-w-[110px]">
                   {userProfile?.companyName || 'Suministros Globales'}
                 </span>
               </div>
@@ -1287,9 +1366,9 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Horizontal Sector Pills + Card Layout Toggle */}
-                <div className="flex items-center justify-between gap-3 overflow-x-auto no-scrollbar py-1">
-                  <div className="flex items-center gap-2 shrink-0">
+                {/* Sector Pills + Card Layout Toggle (Flex-Wrap without Horizontal Scroll) */}
+                <div className="flex flex-wrap items-center justify-between gap-2.5 py-1">
+                  <div className="flex flex-wrap items-center gap-2">
                     <button
                       type="button"
                       onClick={() => setSelectedSector('all')}

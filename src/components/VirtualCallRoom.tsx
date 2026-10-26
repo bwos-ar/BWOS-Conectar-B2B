@@ -183,12 +183,12 @@ export const VirtualCallRoom: React.FC<VirtualCallRoomProps> = ({
 
         {/* Counterparty Switcher & External Jitsi Link */}
         <div className="flex flex-wrap items-center gap-2.5">
-          <div className="flex items-center gap-2 bg-surface-container-low px-3 py-2 rounded-xl border border-surface-container-high">
-            <span className="material-symbols-outlined text-primary text-[18px]">
+          <div className="flex items-center gap-2 bg-surface-container-low px-3 py-2 rounded-xl border border-surface-container-high max-w-full">
+            <span className="material-symbols-outlined text-primary text-[18px] shrink-0">
               swap_horiz
             </span>
-            <label htmlFor="room-switcher" className="font-label-sm text-outline">
-              Cambiar Sala:
+            <label htmlFor="room-switcher" className="font-label-sm text-outline shrink-0">
+              Sala:
             </label>
             <select
               id="room-switcher"
@@ -197,7 +197,7 @@ export const VirtualCallRoom: React.FC<VirtualCallRoomProps> = ({
                 const found = allCompanies.find((c) => c.id === e.target.value);
                 if (found) onSelectCompany(found);
               }}
-              className="bg-transparent font-label-md text-on-surface outline-none cursor-pointer"
+              className="bg-transparent font-label-md text-on-surface outline-none cursor-pointer max-w-[180px] sm:max-w-[240px] truncate"
             >
               {allCompanies.map((c) => (
                 <option key={c.id} value={c.id}>

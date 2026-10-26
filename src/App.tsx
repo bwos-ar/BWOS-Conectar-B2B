@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AccreditationView } from './components/AccreditationView';
+import { AdminApprovalAndEmailModal } from './components/AdminApprovalAndEmailModal';
+import { AdminDashboardView } from './components/AdminDashboardView';
 import { IncomingCallModal } from './components/IncomingCallModal';
 import { InstitutionalFooter } from './components/InstitutionalFooter';
 import {
@@ -28,6 +30,19 @@ import {
   MeetingItem,
   UserProfile,
 } from './data/b2bData';
+import {
+  AccessRequestItem,
+  EmailLogItem,
+  EmailNotificationPayload,
+  findAccessRequestByEmail,
+  getAccessRequests,
+  getCompanyCorporateEmail,
+  getSavedEmailLogs,
+  saveAccessRequests,
+  saveEmailLogs,
+  sendB2BEmailNotification,
+  upsertAccessRequest,
+} from './services/emailjsService';
 
 type MainView =
   | 'lobby'
@@ -35,7 +50,8 @@ type MainView =
   | 'accreditation'
   | 'connections'
   | 'agenda'
-  | 'virtual-room';
+  | 'virtual-room'
+  | 'admin-dashboard';
 
 const STORAGE_KEYS = {
   INVITATION_GRANTED: 'bwos_b2b_invitation_granted_v2',
@@ -48,11 +64,31 @@ const STORAGE_KEYS = {
 const ITEMS_PER_PAGE = 8;
 
 export default function App() {
-  // Mandatory Invitation Gate State (Default false: zero data shown until unlocked)
+  // Access Requests Queue (Mandatory Admin OK from clientesbinweb@gmail.com)
+  const [accessRequests, setAccessRequests] = useState<AccessRequestItem[]>(
+    () => getAccessRequests()
+  );
+
+  // EmailJS Dispatched Logs State
+  const [emailLogs, setEmailLogs] = useState<EmailLogItem[]>(() =>
+    getSavedEmailLogs()
+  );
+
+  // Mandatory Invitation Gate State (Default false: requires Admin OK or Admin email)
   const [hasInvitationAccess, setHasInvitationAccess] = useState<boolean>(
     () => {
       try {
-        return localStorage.getItem(STORAGE_KEYS.INVITATION_GRANTED) === 'true';
+        const granted =
+          localStorage.getItem(STORAGE_KEYS.INVITATION_GRANTED) === 'true';
+        const storedEmail = (
+          localStorage.getItem(STORAGE_KEYS.ADMIN_EMAIL) || ''
+        )
+          .trim()
+          .toLowerCase();
+        if (!granted || !storedEmail) return false;
+        if (storedEmail === ADMIN_EMAIL.toLowerCase()) return true;
+        const req = findAccessRequestByEmail(storedEmail);
+        return Boolean(req && req.status === 'approved');
       } catch {
         return false;
       }
@@ -128,6 +164,13 @@ export default function App() {
     null
   );
   const [pitchMessage, setPitchMessage] = useState<string>('');
+  const [pitchRecipientEmail, setPitchRecipientEmail] = useState<string>('');
+  const [sendPitchEmailToggle, setSendPitchEmailToggle] =
+    useState<boolean>(true);
+  const [emailModalState, setEmailModalState] = useState<{
+    isOpen: boolean;
+    tab: 'approvals' | 'compose' | 'logs';
+  }>({ isOpen: false, tab: 'compose' });
   const [isIncomingCallOpen, setIsIncomingCallOpen] = useState<boolean>(false);
   const [incomingCallData, setIncomingCallData] = useState<IncomingCallData>(
     DEFAULT_INCOMING_CALL
@@ -418,6 +461,8 @@ export default function App() {
 
   const handleOpenSpeedPitch = (company: CompanyCard) => {
     setSpeedPitchTarget(company);
+    setPitchRecipientEmail(getCompanyCorporateEmail(company.name));
+    setSendPitchEmailToggle(true);
     setPitchMessage(
       `Hola ${company.representative.name}, revisé su requerimiento de "${company.demand.badge}" en BWOS Conectar B2B y contamos con disponibilidad inmediata para homologar.`
     );
@@ -453,9 +498,19 @@ export default function App() {
     );
   };
 
-  const handleSendConnectionAndJoinRoom = (joinVideoImmediately: boolean) => {
+  const handleSendConnectionAndJoinRoom = async (
+    joinVideoImmediately: boolean
+  ) => {
     if (!speedPitchTarget) return;
     const target = speedPitchTarget;
+    const recipientEmail =
+      pitchRecipientEmail.trim() || getCompanyCorporateEmail(target.name);
+    const senderName =
+      userProfile?.fullName ||
+      (isAdmin ? 'Administrador BWOS' : 'Ejecutivo Acreditado B2B');
+    const senderCompany =
+      userProfile?.companyName ||
+      (isAdmin ? 'Dirección General BWOS' : 'Empresa Invitada B2B');
 
     setCompanies((prev) =>
       prev.map((c) =>
@@ -498,17 +553,37 @@ export default function App() {
 
     setSpeedPitchTarget(null);
 
+    if (sendPitchEmailToggle) {
+      await sendB2BEmailNotification({
+        type: joinVideoImmediately ? 'meeting_request' : 'connection_invite',
+        toEmail: recipientEmail,
+        toName: target.representative.name,
+        fromName: senderName,
+        fromEmail: isAdmin ? ADMIN_EMAIL : undefined,
+        companyName: target.name,
+        subject: joinVideoImmediately
+          ? `[BWOS Conectar B2B] Solicitud de Reunión 1-a-1 Jitsi de ${senderCompany}`
+          : `[BWOS Conectar B2B] Nueva Invitación de Conexión de ${senderCompany}`,
+        message:
+          pitchMessage.trim() ||
+          `Hola ${target.representative.name}, te invitamos a conectar y coordinar una ronda 1-a-1 en BWOS Conectar B2B.`,
+        jitsiRoomUrl: `https://meet.jit.si/${target.jitsiRoomName}`,
+        ccAdminEmail: ADMIN_EMAIL,
+      });
+      setEmailLogs(getSavedEmailLogs());
+    }
+
     if (joinVideoImmediately) {
       setActiveCallCompany(target);
       setActiveView('virtual-room');
       showToast(
-        `Conectando Sala 1-a-1 con ${target.name}`,
-        'Abriendo videoconferencia Jitsi Meet gratuita...'
+        `Sala 1-a-1 abierta + EmailJS enviado`,
+        `Notificación enviada a ${recipientEmail} (CC: ${ADMIN_EMAIL}).`
       );
     } else {
       showToast(
-        `¡Invitación enviada a ${target.name}!`,
-        'Notificando a la contraparte para agendar reunión 1-a-1.'
+        `¡Invitación y EmailJS enviados a ${target.name}!`,
+        `Correo despachado a ${recipientEmail} (CC: ${ADMIN_EMAIL}).`
       );
     }
   };
@@ -539,19 +614,33 @@ export default function App() {
     setIsIncomingCallOpen(true);
   };
 
-  const handleAcceptIncomingCall = (call: IncomingCallData) => {
+  const handleAcceptIncomingCall = async (call: IncomingCallData) => {
     setIsIncomingCallOpen(false);
     const foundCompany =
       companies.find((c) => c.id === call.companyId) || companies[4] || companies[0];
     setActiveCallCompany(foundCompany);
     setActiveView('virtual-room');
+
+    await sendB2BEmailNotification({
+      type: 'meeting_request',
+      toEmail: getCompanyCorporateEmail(call.companyName),
+      toName: call.callerName,
+      fromName: userProfile?.fullName || 'Ejecutivo B2B',
+      companyName: call.companyName,
+      subject: `[BWOS Conectar B2B] Reunión 1-a-1 Aceptada en ${call.roomNumber}`,
+      message: `Confirmación de ingreso en vivo a la Sala Jitsi (${call.roomNumber}) con ${call.callerName} (${call.companyName}).`,
+      jitsiRoomUrl: `https://meet.jit.si/${call.jitsiRoomName}`,
+      ccAdminEmail: ADMIN_EMAIL,
+    });
+    setEmailLogs(getSavedEmailLogs());
+
     showToast(
       `Enlace establecido con ${call.callerName}`,
-      `Conectado en ${call.roomNumber} mediante Jitsi Meet.`
+      `Conectado en ${call.roomNumber} · Confirmación enviada vía EmailJS.`
     );
   };
 
-  const handlePostponeIncomingCall = (call: IncomingCallData) => {
+  const handlePostponeIncomingCall = async (call: IncomingCallData) => {
     setIsIncomingCallOpen(false);
     const newMeet: MeetingItem = {
       id: `meet-postponed-${Date.now()}`,
@@ -570,9 +659,23 @@ export default function App() {
       jitsiRoomName: call.jitsiRoomName,
     };
     setMeetings((prev) => [newMeet, ...prev]);
+
+    await sendB2BEmailNotification({
+      type: 'meeting_request',
+      toEmail: getCompanyCorporateEmail(call.companyName),
+      toName: call.callerName,
+      fromName: userProfile?.fullName || 'Ejecutivo B2B',
+      companyName: call.companyName,
+      subject: `[BWOS Conectar B2B] Solicitud de Reunión Reprogramada (+15 min) con ${call.companyName}`,
+      message: `La reunión 1-a-1 con ${call.callerName} (${call.companyName}) fue reprogramada +15 minutos en ${call.roomNumber}.`,
+      jitsiRoomUrl: `https://meet.jit.si/${call.jitsiRoomName}`,
+      ccAdminEmail: ADMIN_EMAIL,
+    });
+    setEmailLogs(getSavedEmailLogs());
+
     showToast(
-      'Reunión pospuesta 15 minutos',
-      `Se agendó el encuentro con ${call.callerName} en tu Agenda B2B.`
+      'Reunión pospuesta 15 minutos + EmailJS enviado',
+      `Se notificó por correo a ${call.callerName} y se agendó en tu Agenda B2B.`
     );
   };
 
@@ -743,11 +846,139 @@ export default function App() {
     setCurrentPage(1);
   };
 
-  // MANDATORY FIRST SCREEN: If user has not requested/validated an invitation, render ONLY the Invitation Gate (zero platform data exposed)
+  const handleRefreshAccessRequests = () => {
+    setAccessRequests(getAccessRequests());
+    setEmailLogs(getSavedEmailLogs());
+  };
+
+  const handleApproveAccessRequest = async (req: AccessRequestItem) => {
+    const updatedList = accessRequests.map((item) =>
+      item.id === req.id
+        ? {
+            ...item,
+            status: 'approved' as const,
+            reviewedAt: new Date().toISOString(),
+            reviewedBy: ADMIN_EMAIL,
+          }
+        : item
+    );
+    saveAccessRequests(updatedList);
+    setAccessRequests(updatedList);
+
+    await sendB2BEmailNotification({
+      type: 'access_approved',
+      toEmail: req.email,
+      toName: req.fullName,
+      fromName: 'Administrador General BWOS',
+      fromEmail: ADMIN_EMAIL,
+      companyName: req.companyName,
+      subject: `[OK DEL ADMINISTRADOR OTORGADO] Acceso Habilitado a BWOS Conectar B2B`,
+      message: `Hola ${req.fullName} (${req.companyName}), el administrador (${ADMIN_EMAIL}) ha dado el "OK" obligatorio a tu solicitud de ingreso. Ya puedes entrar a la plataforma utilizando tu correo ${req.email} en la pestaña "Ingreso Autorizado".`,
+      ccAdminEmail: ADMIN_EMAIL,
+    });
+    setEmailLogs(getSavedEmailLogs());
+
+    showToast(
+      `¡OK de Ingreso Otorgado a ${req.companyName}!`,
+      `Notificación EmailJS enviada a ${req.email}.`
+    );
+  };
+
+  const handleRejectAccessRequest = (req: AccessRequestItem) => {
+    const updatedList = accessRequests.map((item) =>
+      item.id === req.id
+        ? {
+            ...item,
+            status: 'rejected' as const,
+            reviewedAt: new Date().toISOString(),
+            reviewedBy: ADMIN_EMAIL,
+          }
+        : item
+    );
+    saveAccessRequests(updatedList);
+    setAccessRequests(updatedList);
+    showToast(
+      `Solicitud rechazada / revocada`,
+      `El correo ${req.email} no tiene autorización para ingresar.`
+    );
+  };
+
+  const handleManualAuthorizeEmail = async (data: {
+    email: string;
+    fullName: string;
+    companyName: string;
+    role: string;
+    sector: string;
+  }) => {
+    const created = upsertAccessRequest({
+      email: data.email,
+      fullName: data.fullName,
+      companyName: data.companyName,
+      corporateContact: data.email,
+      role: data.role,
+      sector: data.sector,
+      sectorsList: [data.sector],
+      source: 'admin_manual',
+      status: 'approved',
+    });
+    setAccessRequests(getAccessRequests());
+
+    await sendB2BEmailNotification({
+      type: 'access_approved',
+      toEmail: created.email,
+      toName: created.fullName,
+      fromName: 'Administrador General BWOS',
+      fromEmail: ADMIN_EMAIL,
+      companyName: created.companyName,
+      subject: `[OK DEL ADMINISTRADOR OTORGADO] Credencial Autorizada BWOS Conectar B2B`,
+      message: `Hola ${created.fullName} (${created.companyName}), el administrador (${ADMIN_EMAIL}) ha habilitado directamente tu ingreso con "OK" aprobado. Ingresa con ${created.email} en "Ingreso Autorizado".`,
+      ccAdminEmail: ADMIN_EMAIL,
+    });
+    setEmailLogs(getSavedEmailLogs());
+
+    showToast(
+      `Correo ${created.email} aprobado con OK`,
+      'Se notificó vía EmailJS al ejecutivo autorizado.'
+    );
+  };
+
+  const handleSendManualEmail = async (payload: EmailNotificationPayload) => {
+    await sendB2BEmailNotification(payload);
+    setEmailLogs(getSavedEmailLogs());
+    showToast(
+      `Notificación EmailJS Enviada`,
+      `Destinatario: ${payload.toEmail} (CC: ${ADMIN_EMAIL})`
+    );
+  };
+
+  const handleDeleteAccessRequest = (reqId: string) => {
+    const updatedList = accessRequests.filter((item) => item.id !== reqId);
+    saveAccessRequests(updatedList);
+    setAccessRequests(updatedList);
+    showToast('Solicitud eliminada', 'El registro fue removido de la cola.');
+  };
+
+  const handleClearEmailLogs = () => {
+    saveEmailLogs([]);
+    setEmailLogs([]);
+    showToast(
+      'Historial EmailJS limpiado',
+      'Se vació la bandeja de registros de correo.'
+    );
+  };
+
+  const pendingAccessCount = useMemo(
+    () => accessRequests.filter((r) => r.status === 'pending').length,
+    [accessRequests]
+  );
+
+  // MANDATORY FIRST SCREEN: If user has not received the mandatory OK from the administrator (or is not the admin), render ONLY the Invitation Gate (zero platform data exposed)
   if (!hasInvitationAccess) {
     return (
       <>
         <InvitationGateView
+          accessRequests={accessRequests}
+          onRefreshRequests={handleRefreshAccessRequests}
           onGrantAccess={handleGrantInvitationAccess}
           onOpenLegalNotice={(sec) => setLegalModalSection(sec)}
           onResetDemo={handleResetDemoData}
@@ -920,21 +1151,71 @@ export default function App() {
               </span>
               <span>Sala Jitsi</span>
             </button>
-          </nav>
 
-          {/* Right Quick Actions: Simulate Call (Admin), Legal Red Notice, Lock Gate & Profile */}
-          <div className="flex flex-wrap items-center gap-1.5 shrink-0">
             {isAdmin && (
               <button
                 type="button"
-                onClick={() => handleTriggerIncomingCall()}
-                className="h-8 px-2.5 rounded-lg bg-secondary/15 hover:bg-secondary hover:text-on-secondary text-secondary font-label-sm font-bold flex items-center gap-1 transition-all cursor-pointer"
-                title="Simular modal de Videollamada B2B Entrante (Solo Admin)"
+                onClick={() => setActiveView('admin-dashboard')}
+                className={`px-2.5 py-1.5 rounded-lg font-title-md text-[13px] transition-colors flex items-center gap-1.5 cursor-pointer ${
+                  activeView === 'admin-dashboard'
+                    ? 'bg-[#161f30] text-white font-bold shadow-xs'
+                    : 'bg-amber-500/15 text-amber-900 hover:bg-amber-500/25 font-bold'
+                }`}
               >
-                <span className="material-symbols-outlined text-[16px] animate-bounce">
-                  ring_volume
+                <span className="material-symbols-outlined text-[17px]">
+                  admin_panel_settings
                 </span>
-                <span className="hidden xl:inline">Llamada Entrante</span>
+                <span>Dashboard Admin</span>
+                {pendingAccessCount > 0 && (
+                  <span className="px-1.5 py-0.2 rounded-full bg-amber-500 text-slate-950 text-[10px] font-extrabold tabular-nums">
+                    {pendingAccessCount}
+                  </span>
+                )}
+              </button>
+            )}
+          </nav>
+
+          {/* Right Quick Actions: Consolidated Admin Dashboard / EmailJS, Legal Red Notice, Lock Gate & Profile */}
+          <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+            {isAdmin ? (
+              <button
+                type="button"
+                onClick={() => setActiveView('admin-dashboard')}
+                className={`lg:hidden h-8 px-2.5 rounded-lg font-label-sm font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                  activeView === 'admin-dashboard'
+                    ? 'bg-[#161f30] text-white'
+                    : 'bg-amber-500/20 text-amber-900 border border-amber-500/40'
+                }`}
+                title="Abrir Dashboard de Administración Consolidado"
+              >
+                <span className="material-symbols-outlined text-[16px]">
+                  admin_panel_settings
+                </span>
+                <span>Admin</span>
+                {pendingAccessCount > 0 && (
+                  <span className="px-1.5 py-0.2 rounded-full bg-amber-500 text-slate-950 font-extrabold text-[10px] tabular-nums">
+                    {pendingAccessCount}
+                  </span>
+                )}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() =>
+                  setEmailModalState({ isOpen: true, tab: 'compose' })
+                }
+                className="h-8 px-2.5 rounded-lg bg-primary/10 hover:bg-primary text-primary hover:text-on-primary font-label-sm font-bold flex items-center gap-1 transition-all cursor-pointer"
+                title="Abrir Formulario de Envío y Bandeja de Notificaciones EmailJS"
+              >
+                <span className="material-symbols-outlined text-[16px]">
+                  forward_to_inbox
+                </span>
+                <span className="hidden md:inline">EmailJS</span>
+                {emailLogs.length > 0 && (
+                  <span className="px-1.5 py-0.2 rounded-full bg-primary text-on-primary text-[10px] font-extrabold tabular-nums">
+                    {emailLogs.length}
+                  </span>
+                )}
               </button>
             )}
 
@@ -992,6 +1273,27 @@ export default function App() {
 
       {/* Main Content Area */}
       <main className="flex-1 w-full">
+        {/* VIEW 0: DASHBOARD DE ADMINISTRACIÓN EXCLUSIVO (clientesbinweb@gmail.com) */}
+        {activeView === 'admin-dashboard' && (
+          <AdminDashboardView
+            isAdmin={isAdmin}
+            companies={companies}
+            meetings={meetings}
+            accessRequests={accessRequests}
+            emailLogs={emailLogs}
+            onApproveRequest={handleApproveAccessRequest}
+            onRejectRequest={handleRejectAccessRequest}
+            onDeleteRequest={handleDeleteAccessRequest}
+            onManualAuthorizeEmail={handleManualAuthorizeEmail}
+            onSendManualEmail={handleSendManualEmail}
+            onClearEmailLogs={handleClearEmailLogs}
+            onTriggerIncomingCall={() => handleTriggerIncomingCall()}
+            onOpenPublishModal={() => setIsPublishModalOpen(true)}
+            onResetDemoData={handleResetDemoData}
+            onNavigateToLobby={() => setActiveView('lobby')}
+          />
+        )}
+
         {/* VIEW 1: ACREDITACIÓN EMPRESARIAL */}
         {activeView === 'accreditation' && (
           <AccreditationView
@@ -2293,6 +2595,43 @@ export default function App() {
               />
             </div>
 
+            {/* EmailJS Direct Notification Box inside Speed-Pitch Modal */}
+            <div className="p-3.5 rounded-xl bg-primary-fixed/30 border border-primary/20 flex flex-col gap-2.5">
+              <div className="flex items-center justify-between gap-2">
+                <label className="flex items-center gap-2 font-label-md text-primary font-bold cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={sendPitchEmailToggle}
+                    onChange={(e) => setSendPitchEmailToggle(e.target.checked)}
+                    className="w-4 h-4 accent-primary"
+                  />
+                  <span>Notificar por correo mediante EmailJS</span>
+                </label>
+                <span className="font-label-sm text-on-surface-variant text-[11px]">
+                  CC: {ADMIN_EMAIL}
+                </span>
+              </div>
+
+              {sendPitchEmailToggle && (
+                <div className="flex flex-col gap-1">
+                  <label
+                    htmlFor="pitch-recipient-email"
+                    className="font-label-sm text-on-surface-variant"
+                  >
+                    Correo Corporativo de la Contraparte:
+                  </label>
+                  <input
+                    id="pitch-recipient-email"
+                    type="email"
+                    value={pitchRecipientEmail}
+                    onChange={(e) => setPitchRecipientEmail(e.target.value)}
+                    placeholder="alianzas@empresa.com"
+                    className="w-full px-3 py-1.5 rounded-lg bg-surface-container-lowest border border-outline-variant font-body-sm text-on-surface outline-none focus:border-primary"
+                  />
+                </div>
+              )}
+            </div>
+
             <div className="flex flex-col sm:flex-row items-center justify-end gap-2.5 pt-2">
               <button
                 type="button"
@@ -2602,6 +2941,40 @@ export default function App() {
         isOpen={Boolean(legalModalSection)}
         sectionTitle={legalModalSection || ''}
         onClose={() => setLegalModalSection(null)}
+      />
+
+      {/* MODAL 6: CENTRO DE NOTIFICACIONES EMAILJS Y APROBACIÓN OBLIGATORIA DE INGRESO (ADMIN OK) */}
+      <AdminApprovalAndEmailModal
+        isOpen={emailModalState.isOpen}
+        initialTab={emailModalState.tab}
+        isAdmin={isAdmin}
+        userEmail={
+          isAdmin
+            ? ADMIN_EMAIL
+            : userProfile
+            ? `${userProfile.fullName
+                .toLowerCase()
+                .replace(/\s+/g, '.')}@empresa.com`
+            : 'ejecutivo@empresab2b.com'
+        }
+        userName={
+          userProfile?.fullName ||
+          (isAdmin ? 'Administrador BWOS' : 'Ejecutivo Acreditado B2B')
+        }
+        userCompany={
+          userProfile?.companyName ||
+          (isAdmin ? 'Dirección General BWOS' : 'Empresa Invitada B2B')
+        }
+        companies={companies}
+        accessRequests={accessRequests}
+        emailLogs={emailLogs}
+        onClose={() =>
+          setEmailModalState((prev) => ({ ...prev, isOpen: false }))
+        }
+        onApproveRequest={handleApproveAccessRequest}
+        onRejectRequest={handleRejectAccessRequest}
+        onManualAuthorizeEmail={handleManualAuthorizeEmail}
+        onSendManualEmail={handleSendManualEmail}
       />
 
       {/* GLOBAL TOAST FEEDBACK (Matches Image_2 & Image_10) */}

@@ -137,6 +137,21 @@ export const InvitationGateView: React.FC<InvitationGateViewProps> = ({
       ccAdminEmail: ADMIN_EMAIL,
     });
 
+    // 3. Dispatch EmailJS confirmation copy to Applicant
+    if (cleanEmail !== ADMIN_EMAIL.toLowerCase()) {
+      await sendB2BEmailNotification({
+        type: 'access_request',
+        toEmail: cleanEmail,
+        toName: fullName.trim(),
+        fromName: 'BWOS Conectar B2B Summit',
+        fromEmail: ADMIN_EMAIL,
+        companyName: companyName.trim(),
+        subject: `[BWOS Conectar B2B] Solicitud de Invitación Recibida - ${companyName.trim()}`,
+        message: `Hola ${fullName.trim()}, hemos recibido tu solicitud de invitación para "${companyName.trim()}" en [${combinedSectorLabel}]. Tu solicitud está en proceso de revisión por la administración (${ADMIN_EMAIL}). Una vez aprobada tu cuenta con el "OK" obligatorio, podrás ingresar al Directorio B2B desde "Ingreso Autorizado" con este correo (${cleanEmail}).`,
+        ccAdminEmail: ADMIN_EMAIL,
+      });
+    }
+
     onRefreshRequests();
     setIsSendingEmail(false);
 
@@ -246,6 +261,20 @@ export const InvitationGateView: React.FC<InvitationGateViewProps> = ({
       message: `El correo ${cleanAuth} (${companyLabel}) intentó ingresar por "Ingreso Autorizado". El acceso permanece bloqueado hasta que otorgues tu "OK / Aprobar Ingreso" obligatorio desde la cuenta administradora (${ADMIN_EMAIL}).`,
       ccAdminEmail: ADMIN_EMAIL,
     });
+
+    if (cleanAuth !== ADMIN_EMAIL.toLowerCase()) {
+      await sendB2BEmailNotification({
+        type: 'access_request',
+        toEmail: cleanAuth,
+        toName: existingReq?.fullName || cleanAuth.split('@')[0],
+        fromName: 'BWOS Conectar B2B Summit',
+        fromEmail: ADMIN_EMAIL,
+        companyName: companyLabel,
+        subject: `[BWOS Conectar B2B] Verificación de Acceso en Proceso - ${companyLabel}`,
+        message: `Hola, tu intento de ingreso para ${cleanAuth} (${companyLabel}) está en espera del "OK" obligatorio del administrador general (${ADMIN_EMAIL}). Te avisaremos en cuanto tu cuenta sea aprobada para ingresar.`,
+        ccAdminEmail: ADMIN_EMAIL,
+      });
+    }
 
     onRefreshRequests();
     setIsSendingEmail(false);

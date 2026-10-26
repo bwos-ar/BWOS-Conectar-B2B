@@ -1,0 +1,686 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0" name="viewport"><meta content="web_standard" name="shell-type"><link href="https://fonts.googleapis.com" rel="preconnect"><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"><link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&amp;display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={"darkMode":"class","theme":{"extend":{"colors":{"on-primary":"#ffffff","on-error-container":"#93000a","primary":"#003cb1","outline":"#737686","inverse-on-surface":"#eef0ff","inverse-primary":"#b5c4ff","on-background":"#131b2e","inverse-surface":"#283044","surface-tint":"#0d51df","surface-container":"#eaedff","on-tertiary-fixed":"#0d1c2e","primary-container":"#1052e0","background":"#faf8ff","on-surface":"#131b2e","on-error":"#ffffff","on-secondary":"#ffffff","secondary":"#006d38","tertiary-container":"#526074","surface":"#faf8ff","on-primary-container":"#d1d9ff","tertiary":"#3a485c","on-secondary-container":"#00743b","error":"#ba1a1a","on-primary-fixed-variant":"#003bae","secondary-container":"#6bfe9e","error-container":"#ffdad6","surface-container-low":"#f2f3ff","tertiary-fixed-dim":"#b9c7df","secondary-fixed-dim":"#4ae084","surface-bright":"#faf8ff","primary-fixed":"#dce1ff","on-secondary-fixed-variant":"#005228","surface-variant":"#dae2fd","surface-container-high":"#e2e7ff","on-secondary-fixed":"#00210d","on-primary-fixed":"#00164e","surface-dim":"#d2d9f4","secondary-fixed":"#6bfe9e","on-tertiary-container":"#ccdbf3","primary-fixed-dim":"#b5c4ff","surface-container-highest":"#dae2fd","outline-variant":"#c3c5d7","on-tertiary":"#ffffff","on-tertiary-fixed-variant":"#3a485b","surface-container-lowest":"#ffffff","tertiary-fixed":"#d5e3fc","on-surface-variant":"#434655"},"borderRadius":{"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"},"spacing":{"space-sm":"0.5rem","space-xs":"0.25rem","gutter":"1rem","space-xl":"1.75rem","space-md":"0.875rem","margin":"1rem","space-lg":"1.25rem"},"fontFamily":{"headline-lg":["Hanken Grotesk"],"label-md":["Hanken Grotesk"],"body-md":["Hanken Grotesk"],"title-md":["Hanken Grotesk"],"headline-md":["Hanken Grotesk"],"label-sm":["Hanken Grotesk"],"body-sm":["Hanken Grotesk"],"headline-sm":["Hanken Grotesk"],"body-lg":["Hanken Grotesk"]},"fontSize":{"headline-lg":["30px",{"lineHeight":"38px","letterSpacing":"-0.02em","fontWeight":"800"}],"label-md":["12px",{"lineHeight":"16px","letterSpacing":"0.02em","fontWeight":"600"}],"body-md":["14px",{"lineHeight":"20px","fontWeight":"400"}],"title-md":["16px",{"lineHeight":"22px","letterSpacing":"-0.005em","fontWeight":"700"}],"headline-md":["22px",{"lineHeight":"28px","letterSpacing":"-0.015em","fontWeight":"700"}],"label-sm":["11px",{"lineHeight":"14px","letterSpacing":"0.04em","fontWeight":"700"}],"body-sm":["12px",{"lineHeight":"16px","fontWeight":"500"}],"headline-sm":["18px",{"lineHeight":"24px","letterSpacing":"-0.01em","fontWeight":"700"}],"body-lg":["16px",{"lineHeight":"24px","fontWeight":"400"}]}}}}</script></head><body class="bg-surface text-on-surface font-body-md text-body-md"><header class="fixed top-0 left-0 right-0 z-50 bg-surface-container-lowest shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-16 w-full px-gutter flex items-center justify-between gap-space-lg"><div class="flex items-center gap-space-lg flex-shrink-0"><div class="flex items-center gap-space-sm"><div class="w-9 h-9 rounded-lg bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[20px]">hub</span></div><div class="flex flex-col"><span class="font-headline-sm text-headline-sm text-on-surface leading-tight tracking-tight">BWOS</span><span class="font-label-sm text-label-sm text-primary uppercase tracking-wider font-bold">Conectar B2B</span></div></div><div class="hidden xl:flex items-center gap-space-xs bg-surface-container-low px-space-sm py-1 rounded-full"><span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-secondary"></span></span><span class="font-label-sm text-label-sm text-secondary font-bold">142 directivos activos</span></div></div><nav class="hidden lg:flex items-center gap-space-xs" data-active-classes="bg-primary-container text-on-primary font-bold rounded-lg"><a aria-current="page" class="px-space-md py-2 transition-colors bg-primary-container text-on-primary font-bold rounded-lg" data-path="lobby-virtual-y-directorio-de-tarjetas-b2b" href="#">Lobby Virtual</a><a class="px-space-md py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors font-title-md text-title-md" data-path="mis-conexiones" href="#">Mis Conexiones</a><a class="px-space-md py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors font-title-md text-title-md" data-path="agenda-b2b" href="#">Agenda B2B</a><a class="px-space-md py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors font-title-md text-title-md" data-path="videollamada-entrante-b2b" href="#">Sala Virtual</a></nav><div class="flex items-center gap-space-md flex-shrink-0"><div class="hidden md:flex items-center relative w-56 xl:w-64"><span class="material-symbols-outlined text-outline text-[18px] absolute left-3 pointer-events-none">search</span><input class="w-full bg-surface-container-low pl-9 pr-3 py-1.5 rounded-lg text-on-surface font-body-sm text-body-sm placeholder:text-outline focus:outline-none focus:bg-surface-container-lowest focus:ring-1 focus:ring-primary" placeholder="Buscar por oferta, demanda o empresa..." type="text"></div><button class="relative p-2 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" type="button"><span class="material-symbols-outlined text-[20px]">notifications</span><span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary"></span></button><div class="flex items-center gap-space-sm pl-space-xs"><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div><div class="hidden 2xl:flex flex-col text-left"><span class="font-label-md text-label-md text-on-surface leading-tight font-bold">Ing. Alberto Ruiz</span><span class="font-label-sm text-label-sm text-on-surface-variant">Suministros Globales</span></div></div></div></div></header><main class="w-full pt-16 bg-surface min-h-[calc(100vh-64px)]"><div class="flex flex-col w-full">
+<!-- Interactive Match Modal Overlay (Hidden initially) -->
+<div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-on-background/40 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-200" id="connect-modal">
+<div class="bg-surface-container-lowest rounded-xl shadow-2xl max-w-lg w-full p-space-lg flex flex-col gap-space-md transform scale-95 transition-transform duration-200" id="modal-card">
+<div class="flex items-center justify-between pb-space-xs">
+<div class="flex items-center gap-space-sm">
+<div class="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[24px]">handshake</span>
+</div>
+<div class="flex flex-col">
+<h4 class="font-headline-sm text-headline-sm text-on-surface">Iniciar Vínculo Inmediato</h4>
+<span class="font-label-sm text-label-sm text-secondary font-bold flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-secondary animate-pulse"></span> Contraparte en línea para Speed-Pitch
+            </span>
+</div>
+</div>
+<button class="w-8 h-8 rounded-lg flex items-center justify-center text-on-surface-variant hover:bg-surface-container-low transition-colors" onclick="closeModal()" type="button">
+<span class="material-symbols-outlined text-[20px]">close</span>
+</button>
+</div>
+<div class="bg-surface-container-low rounded-lg p-space-md flex flex-col gap-space-xs">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Empresa Destino</span>
+<span class="font-headline-sm text-headline-sm text-primary font-extrabold leading-tight" id="modal-company-name">Kurox Cloud AI</span>
+<span class="font-body-sm text-body-sm text-on-surface" id="modal-rep-name">Ing. Carlos Mendoza · Director de Alianzas LatAm</span>
+</div>
+<div class="flex flex-col gap-1.5">
+<label class="font-label-md text-label-md text-on-surface font-bold" for="pitch-message">Mensaje de Apertura o Propuesta Directa</label>
+<textarea class="w-full bg-surface-container-lowest border-0 ring-1 ring-outline-variant focus:ring-2 focus:ring-primary-container rounded-lg p-3 text-body-md text-on-surface placeholder:text-outline resize-none" id="pitch-message" placeholder="Hola, revisé su requerimiento de infraestructura y contamos con homologación inmediata..." rows="3"></textarea>
+</div>
+<div class="flex items-center justify-between pt-space-xs">
+<button class="px-space-md py-2.5 rounded-lg text-on-surface-variant hover:bg-surface-container-low font-title-md text-title-md transition-colors" onclick="closeModal()" type="button">
+          Cancelar
+        </button>
+<button class="px-space-lg py-2.5 rounded-lg bg-primary-container text-on-primary font-title-md text-title-md shadow-md hover:bg-primary transition-all flex items-center gap-space-xs" onclick="sendConnection()" type="button">
+<span class="material-symbols-outlined text-[18px]">bolt</span>
+<span>Enviar Invitación &amp; Sala 1-a-1</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Header de Contenido & Métricas en Vivo -->
+<section class="w-full px-gutter md:px-8 pt-8 pb-6">
+<div class="max-w-[1400px] mx-auto flex flex-col lg:flex-row lg:items-end justify-between gap-6">
+<div class="flex flex-col gap-2">
+<div class="flex items-center gap-2">
+<span class="font-label-sm text-label-sm uppercase tracking-widest text-primary font-extrabold bg-primary-fixed px-2.5 py-0.5 rounded-full">Edición Regional LatAm 2025</span>
+<span class="text-outline-variant font-label-sm text-label-sm">•</span>
+<span class="font-label-sm text-label-sm text-tertiary">Mesa de Rueda Activa</span>
+</div>
+<h1 class="font-headline-lg text-headline-lg text-on-surface tracking-tight">Lobby Virtual B2B</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-2xl">
+          Directorio dinámico de empresas oferentes y demandantes validadas. Conéctese al instante con decisores de compras y tecnología en salas privadas 1-a-1.
+        </p>
+</div>
+<!-- Live Attendance Pill / Decision-Makers Counter -->
+<div class="bg-surface-container-lowest shadow-sm rounded-xl p-space-md flex items-center gap-space-lg self-start lg:self-auto">
+<div class="flex flex-col">
+<div class="flex items-center gap-2">
+<span class="relative flex h-2.5 w-2.5">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-80"></span>
+<span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-secondary"></span>
+</span>
+<span class="font-headline-sm text-headline-sm text-on-surface font-extrabold tracking-tight">142 En Línea</span>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Tomadores de decisión activos</span>
+</div>
+<!-- Country Badges Flag Mosaic -->
+<div class="flex items-center pl-space-md border-l border-surface-container-high">
+<div class="flex -space-x-2 overflow-hidden items-center">
+<div class="w-7 h-7 rounded-full bg-surface-container-high flex items-center justify-center font-label-sm text-label-sm font-bold text-on-surface ring-2 ring-surface-container-lowest" title="Chile">
+              🇨🇱
+            </div>
+<div class="w-7 h-7 rounded-full bg-surface-container-high flex items-center justify-center font-label-sm text-label-sm font-bold text-on-surface ring-2 ring-surface-container-lowest" title="México">
+              🇲🇽
+            </div>
+<div class="w-7 h-7 rounded-full bg-surface-container-high flex items-center justify-center font-label-sm text-label-sm font-bold text-on-surface ring-2 ring-surface-container-lowest" title="Colombia">
+              🇨🇴
+            </div>
+<div class="w-7 h-7 rounded-full bg-surface-container-high flex items-center justify-center font-label-sm text-label-sm font-bold text-on-surface ring-2 ring-surface-container-lowest" title="Perú">
+              🇵🇪
+            </div>
+<div class="w-7 h-7 rounded-full bg-surface-container-high flex items-center justify-center font-label-sm text-label-sm font-bold text-on-surface ring-2 ring-surface-container-lowest" title="Brasil">
+              🇧🇷
+            </div>
+<span class="w-7 h-7 rounded-full bg-primary-fixed flex items-center justify-center font-label-sm text-label-sm font-bold text-on-primary-fixed ring-2 ring-surface-container-lowest">
+              +7
+            </span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Barra de Herramientas, Búsqueda y Píldoras de Filtro Superior -->
+<section class="w-full px-gutter md:px-8 py-3 sticky top-16 z-30 bg-surface/95 backdrop-blur-md">
+<div class="max-w-[1400px] mx-auto flex flex-col gap-3">
+<!-- Search Input + Advanced Action Buttons -->
+<div class="flex flex-col sm:flex-row items-center gap-3 w-full">
+<div class="relative flex-1 w-full">
+<span class="material-symbols-outlined text-outline absolute left-4 top-1/2 -translate-y-1/2 text-[22px] pointer-events-none">search</span>
+<input class="w-full h-12 bg-surface-container-lowest rounded-xl pl-12 pr-4 text-on-surface font-body-md text-body-md shadow-sm ring-1 ring-outline-variant/60 focus:outline-none focus:ring-2 focus:ring-primary transition-all placeholder:text-outline" id="company-search" placeholder="Buscar empresas, representantes, ofertas o demandas..." type="text">
+<button class="absolute right-3 top-1/2 -translate-y-1/2 px-2.5 py-1 rounded-md bg-surface-container text-on-surface-variant font-label-sm text-label-sm hover:bg-surface-container-high transition-colors" type="button">
+            Limpiar
+          </button>
+</div>
+<div class="flex items-center gap-2.5 w-full sm:w-auto shrink-0">
+<button class="flex-1 sm:flex-none h-12 px-space-md bg-surface-container-lowest rounded-xl text-on-surface font-title-md text-title-md shadow-sm ring-1 ring-outline-variant/60 hover:bg-surface-container-low transition-colors flex items-center justify-center gap-2" type="button">
+<span class="material-symbols-outlined text-[20px] text-primary">tune</span>
+<span>Filtros Avanzados</span>
+</button>
+<button class="h-12 w-12 bg-surface-container-lowest rounded-xl text-on-surface-variant font-title-md text-title-md shadow-sm ring-1 ring-outline-variant/60 hover:bg-surface-container-low transition-colors flex items-center justify-center" title="Ordenar lista" type="button">
+<span class="material-symbols-outlined text-[20px]">sort</span>
+</button>
+</div>
+</div>
+<!-- Horizontal Sector Pills -->
+<div class="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar pt-1">
+<button class="px-space-md py-1.5 rounded-full bg-primary-container text-on-primary font-label-md text-label-md font-bold whitespace-nowrap shadow-sm hover:opacity-95 transition-all">
+          Todos (24)
+        </button>
+<button class="px-space-md py-1.5 rounded-full bg-surface-container-lowest text-on-surface-variant ring-1 ring-outline-variant/60 font-label-md text-label-md whitespace-nowrap hover:bg-surface-container-low transition-colors">
+          SaaS &amp; Tech (9)
+        </button>
+<button class="px-space-md py-1.5 rounded-full bg-surface-container-lowest text-on-surface-variant ring-1 ring-outline-variant/60 font-label-md text-label-md whitespace-nowrap hover:bg-surface-container-low transition-colors">
+          Logística &amp; Fintech (6)
+        </button>
+<button class="px-space-md py-1.5 rounded-full bg-surface-container-lowest text-on-surface-variant ring-1 ring-outline-variant/60 font-label-md text-label-md whitespace-nowrap hover:bg-surface-container-low transition-colors">
+          Manufactura &amp; Industria 4.0 (5)
+        </button>
+<button class="px-space-md py-1.5 rounded-full bg-surface-container-lowest text-on-surface-variant ring-1 ring-outline-variant/60 font-label-md text-label-md whitespace-nowrap hover:bg-surface-container-low transition-colors">
+          Servicios Corporativos (4)
+        </button>
+<button class="px-space-md py-1.5 rounded-full bg-surface-container-lowest text-secondary ring-1 ring-secondary/30 font-label-md text-label-md font-bold whitespace-nowrap hover:bg-secondary-container/20 transition-colors flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+          Solo Match Inmediato
+        </button>
+</div>
+</div>
+</section>
+<!-- Grilla de Tarjetas B2B Desktop / Tablet -->
+<section class="w-full px-gutter md:px-8 py-6">
+<div class="max-w-[1400px] mx-auto grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+<!-- TARJETA 1: Kurox Cloud AI -->
+<article class="bg-surface-container-lowest rounded-xl shadow-sm ring-1 ring-outline-variant/50 hover:shadow-md hover:ring-primary/40 transition-all flex flex-col justify-between overflow-hidden group">
+<div class="p-5 flex flex-col gap-4">
+<!-- Card Header -->
+<div class="flex items-start justify-between gap-3">
+<div class="flex items-center gap-3 min-w-0">
+<div class="w-12 h-12 rounded-lg bg-surface-container-high flex items-center justify-center shrink-0 overflow-hidden relative shadow-inner">
+<img class="w-full h-full object-cover" data-alt="Modern tech logo with glowing deep blue geometric nodes and minimalistic enterprise emblem on white background, sharp vector B2B aesthetic" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCJJyXsmXxZSmJQtCtj9o87CZv9BZGQ0lNmxPUpwZmTAp7Tomh-QhuH9QtzsfCn82Y1drZN7njrUREbluYd_dJfCLIekpcEcvDTvhVRc8AB3qOJj8Ao2yhx7dB8g22KIgMshIur_gob0TYV9j6FvkN74xjTAYOKeVRun0aUr76192HoQMDic2IeynbB7V3W5R1PMDSwoPiFTuHAmu26AIevHbxZ0XGFFwgyL747_nHu1fKVXsU8bFZjZQ">
+</div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-1.5">
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-extrabold truncate">Kurox Cloud AI</h3>
+<span class="material-symbols-outlined text-primary text-[18px] shrink-0" style="font-variation-settings: 'FILL' 1;" title="Empresa Verificada BWOS">verified</span>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-1 truncate">
+<span>🇨🇱 Santiago, Chile</span>
+<span>•</span>
+<span>SaaS &amp; Big Data</span>
+</span>
+</div>
+</div>
+<!-- Pulsing Status Dot -->
+<div class="flex items-center gap-1.5 shrink-0 bg-surface-container-low px-2 py-1 rounded-full" title="Usuario activo en el portal">
+<span class="relative flex h-2 w-2">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-secondary"></span>
+</span>
+<span class="font-label-sm text-label-sm text-secondary font-bold">Activo</span>
+</div>
+</div>
+<!-- Representative Persona Box -->
+<div class="flex items-center gap-2.5 p-2 rounded-lg bg-surface-container-low/60">
+<div class="w-7 h-7 rounded-full bg-primary-fixed flex items-center justify-center text-primary shrink-0">
+<span class="material-symbols-outlined text-[16px]">badge</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-title-md text-title-md text-on-surface text-[13px] leading-tight font-bold truncate">Ing. Carlos Mendoza</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant text-[11px] leading-tight truncate">VP of Enterprise Partnerships</span>
+</div>
+</div>
+<!-- Bloque OFRECE (Soft Green Accent) -->
+<div class="rounded-lg p-3 bg-[#ECFDF5] flex flex-col gap-1">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm font-extrabold text-[#047857] flex items-center gap-1.5 uppercase tracking-wide">
+<span class="w-1.5 h-1.5 rounded-full bg-[#047857]"></span>
+                Ofrece
+              </span>
+<span class="font-label-sm text-label-sm text-[#047857]/80">Disponibilidad Q2</span>
+</div>
+<p class="font-body-md text-body-md text-[#064E3B] text-[13px] leading-snug">
+              Plataforma AutoML para predicción de fuga de clientes y optimización en tiempo real de cadenas de distribución retail.
+            </p>
+</div>
+<!-- Bloque BUSCA / DEMANDA (Soft Blue/Violet Accent) -->
+<div class="rounded-lg p-3 bg-surface-container-low flex flex-col gap-1">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm font-extrabold text-primary flex items-center gap-1.5 uppercase tracking-wide">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+                Demanda / Requiere
+              </span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Ticket: $50k+ USD</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface text-[13px] leading-snug">
+              Alianzas con integradores de ERP (SAP, Oracle) y directores de logística en México o Colombia con flotas sobre 100 unidades.
+            </p>
+</div>
+</div>
+<!-- Card Footer -->
+<div class="px-5 py-3 bg-surface-container-low/40 flex items-center justify-between gap-3 border-t border-surface-container-high/60">
+<div class="flex items-center gap-1.5 text-secondary font-label-md text-label-md font-bold">
+<span class="material-symbols-outlined text-[18px]">verified_user</span>
+<span>Match Score 98%</span>
+</div>
+<button class="h-10 px-space-md bg-primary-container hover:bg-primary text-on-primary font-title-md text-title-md rounded-lg shadow-sm active:scale-98 transition-all flex items-center gap-1.5" onclick="openModal('Kurox Cloud AI', 'Ing. Carlos Mendoza · VP Partnerships')" type="button">
+<span>Conectar</span>
+<span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</button>
+</div>
+</article>
+<!-- TARJETA 2: Envases BioNova -->
+<article class="bg-surface-container-lowest rounded-xl shadow-sm ring-1 ring-outline-variant/50 hover:shadow-md hover:ring-primary/40 transition-all flex flex-col justify-between overflow-hidden group">
+<div class="p-5 flex flex-col gap-4">
+<!-- Card Header -->
+<div class="flex items-start justify-between gap-3">
+<div class="flex items-center gap-3 min-w-0">
+<div class="w-12 h-12 rounded-lg bg-surface-container-high flex items-center justify-center shrink-0 overflow-hidden relative shadow-inner">
+<img class="w-full h-full object-cover" data-alt="Clean ecological industrial corporate packaging logo green and slate blue tones on crisp white background modern sustainable branding" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCf5lUEPfoqMrQq6uCi1CQS1xIG4cs9svCdWaJrREo_ZDbogH2KKSAjGQ18yGnB4CjH7e6m0WpEt58ba568RlToQyUiA7bfDzmeumJm5EaEAzbv5A-WxErx-jvjXWnYGhqfGRMz2hxDa88AUUgvGtzW7C19CpDtG0vZ17fNPWqGJl0gZZtrjzAi-9PigL5XGjkvK7m4kPwjLwpjI4WOkP2_yIBUiX4fsX2GXqF4E1A-_KwRz920Rt2MFQ">
+</div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-1.5">
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-extrabold truncate">Envases BioNova</h3>
+<span class="material-symbols-outlined text-primary text-[18px] shrink-0" style="font-variation-settings: 'FILL' 1;" title="Empresa Verificada BWOS">verified</span>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-1 truncate">
+<span>🇲🇽 Guadalajara, México</span>
+<span>•</span>
+<span>Manufactura &amp; Empaques</span>
+</span>
+</div>
+</div>
+<!-- Pulsing Status Dot -->
+<div class="flex items-center gap-1.5 shrink-0 bg-surface-container-low px-2 py-1 rounded-full" title="Usuario activo en el portal">
+<span class="relative flex h-2 w-2">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-secondary"></span>
+</span>
+<span class="font-label-sm text-label-sm text-secondary font-bold">Activo</span>
+</div>
+</div>
+<!-- Representative Persona Box -->
+<div class="flex items-center gap-2.5 p-2 rounded-lg bg-surface-container-low/60">
+<div class="w-7 h-7 rounded-full bg-secondary-fixed flex items-center justify-center text-secondary shrink-0">
+<span class="material-symbols-outlined text-[16px]">engineering</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-title-md text-title-md text-on-surface text-[13px] leading-tight font-bold truncate">Lic. Sofía Valenzuela</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant text-[11px] leading-tight truncate">Directora Comercial de Cuentas Clave</span>
+</div>
+</div>
+<!-- Bloque OFRECE -->
+<div class="rounded-lg p-3 bg-[#ECFDF5] flex flex-col gap-1">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm font-extrabold text-[#047857] flex items-center gap-1.5 uppercase tracking-wide">
+<span class="w-1.5 h-1.5 rounded-full bg-[#047857]"></span>
+                Ofrece
+              </span>
+<span class="font-label-sm text-label-sm text-[#047857]/80">Certificación FSC / ISO</span>
+</div>
+<p class="font-body-md text-body-md text-[#064E3B] text-[13px] leading-snug">
+              Packaging 100% compostable termorresistente para agroexportadoras, alimentos procesados y logística en frío grado médico.
+            </p>
+</div>
+<!-- Bloque DEMANDA -->
+<div class="rounded-lg p-3 bg-surface-container-low flex flex-col gap-1">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm font-extrabold text-primary flex items-center gap-1.5 uppercase tracking-wide">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+                Demanda / Requiere
+              </span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Licitación Semestral</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface text-[13px] leading-snug">
+              Proveedores de biopolímeros base almidón de yuca y servicios de flete marítimo consolidado hacia puertos del Pacífico.
+            </p>
+</div>
+</div>
+<!-- Card Footer -->
+<div class="px-5 py-3 bg-surface-container-low/40 flex items-center justify-between gap-3 border-t border-surface-container-high/60">
+<div class="flex items-center gap-1.5 text-on-surface-variant font-label-md text-label-md">
+<span class="material-symbols-outlined text-[18px] text-secondary">videocam</span>
+<span>Disp. reunión inmediata</span>
+</div>
+<button class="h-10 px-space-md bg-primary-container hover:bg-primary text-on-primary font-title-md text-title-md rounded-lg shadow-sm active:scale-98 transition-all flex items-center gap-1.5" onclick="openModal('Envases BioNova', 'Lic. Sofía Valenzuela · Dir. Comercial')" type="button">
+<span>Conectar</span>
+<span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</button>
+</div>
+</article>
+<!-- TARJETA 3: Vectra Logistics -->
+<article class="bg-surface-container-lowest rounded-xl shadow-sm ring-1 ring-outline-variant/50 hover:shadow-md hover:ring-primary/40 transition-all flex flex-col justify-between overflow-hidden group">
+<div class="p-5 flex flex-col gap-4">
+<!-- Card Header -->
+<div class="flex items-start justify-between gap-3">
+<div class="flex items-center gap-3 min-w-0">
+<div class="w-12 h-12 rounded-lg bg-surface-container-high flex items-center justify-center shrink-0 overflow-hidden relative shadow-inner">
+<img class="w-full h-full object-cover" data-alt="Corporate freight and logistics minimal logo dynamic arrow and cargo containers mark sharp cobalt blue and silver" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCiDlCqg5U69TMrbWa69QX31u2kV2kwangDE2qCwAI-DBj0D4X5278qvdma83BNvE63DSH9DQZ2RHl4pEAyiT8MGHQ-pppGMdSwQtTa5zNrRROCZpS5suP0TzObVcEfGcN3kvPcTafD1n2zf3Rd2f2hGdl9pi39fc4eytowq59cYC8mE7FX6Q2INGmD2g1RcWSDYNPLw-1tCWgWbgXHoyfG18fCVidVxLlLD3sFdpOHNU6M1KmPcmijRg">
+</div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-1.5">
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-extrabold truncate">Vectra Logistics</h3>
+<span class="material-symbols-outlined text-primary text-[18px] shrink-0" style="font-variation-settings: 'FILL' 1;" title="Empresa Verificada BWOS">verified</span>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-1 truncate">
+<span>🇨🇴 Bogotá, Colombia</span>
+<span>•</span>
+<span>Cadena de Suministro</span>
+</span>
+</div>
+</div>
+<!-- Pulsing Status Dot -->
+<div class="flex items-center gap-1.5 shrink-0 bg-surface-container-low px-2 py-1 rounded-full" title="Usuario activo en el portal">
+<span class="relative flex h-2 w-2">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-secondary"></span>
+</span>
+<span class="font-label-sm text-label-sm text-secondary font-bold">Activo</span>
+</div>
+</div>
+<!-- Representative Persona Box -->
+<div class="flex items-center gap-2.5 p-2 rounded-lg bg-surface-container-low/60">
+<div class="w-7 h-7 rounded-full bg-primary-fixed flex items-center justify-center text-primary shrink-0">
+<span class="material-symbols-outlined text-[16px]">local_shipping</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-title-md text-title-md text-on-surface text-[13px] leading-tight font-bold truncate">Mateo Giraldo C.</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant text-[11px] leading-tight truncate">Gerente General de Operaciones Andinas</span>
+</div>
+</div>
+<!-- Bloque OFRECE -->
+<div class="rounded-lg p-3 bg-[#ECFDF5] flex flex-col gap-1">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm font-extrabold text-[#047857] flex items-center gap-1.5 uppercase tracking-wide">
+<span class="w-1.5 h-1.5 rounded-full bg-[#047857]"></span>
+                Ofrece
+              </span>
+<span class="font-label-sm text-label-sm text-[#047857]/80">45k m² Almacén</span>
+</div>
+<p class="font-body-md text-body-md text-[#064E3B] text-[13px] leading-snug">
+              Corredor logístico aduanero multimodal con tracking IoT satelital 24/7 y hubs en Bogotá, Buenaventura y Medellín.
+            </p>
+</div>
+<!-- Bloque DEMANDA -->
+<div class="rounded-lg p-3 bg-surface-container-low flex flex-col gap-1">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm font-extrabold text-primary flex items-center gap-1.5 uppercase tracking-wide">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+                Demanda / Requiere
+              </span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">SaaS B2B</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface text-[13px] leading-snug">
+              Sistemas de optimización de rutas con ruteo dinámico mediante Machine Learning y telemetría de combustible.
+            </p>
+</div>
+</div>
+<!-- Card Footer -->
+<div class="px-5 py-3 bg-surface-container-low/40 flex items-center justify-between gap-3 border-t border-surface-container-high/60">
+<div class="flex items-center gap-1.5 text-secondary font-label-md text-label-md font-bold">
+<span class="material-symbols-outlined text-[18px]">verified_user</span>
+<span>Match Score 94%</span>
+</div>
+<button class="h-10 px-space-md bg-primary-container hover:bg-primary text-on-primary font-title-md text-title-md rounded-lg shadow-sm active:scale-98 transition-all flex items-center gap-1.5" onclick="openModal('Vectra Logistics', 'Mateo Giraldo C. · Gerente General')" type="button">
+<span>Conectar</span>
+<span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</button>
+</div>
+</article>
+<!-- TARJETA 4: Synapse Robotics -->
+<article class="bg-surface-container-lowest rounded-xl shadow-sm ring-1 ring-outline-variant/50 hover:shadow-md hover:ring-primary/40 transition-all flex flex-col justify-between overflow-hidden group">
+<div class="p-5 flex flex-col gap-4">
+<!-- Card Header -->
+<div class="flex items-start justify-between gap-3">
+<div class="flex items-center gap-3 min-w-0">
+<div class="w-12 h-12 rounded-lg bg-surface-container-high flex items-center justify-center shrink-0 overflow-hidden relative shadow-inner">
+<img class="w-full h-full object-cover" data-alt="Robotics and artificial intelligence industrial company logo subtle precision tech badge blue on white background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBgt_uebaPtBvFa68R5CyvlpK8BFEUTPPpXgY_F3uwSRgPVsR8LC2DB_5wTNUKaAvbmA8_bajRJOjEEWQZrbrYt6QbXcmgHyiOOW7nO1pn-N2OvznN0TzFhpd_Pqy9Evboo8BWbHDqr1Myz1jVt-786HHj3d5z_WgokAs3PLQG2h-AO7LzFT445JV6i0AoIIVuzjv0H3sCsvXVc7PSDBXH04572ZZKpEZHJpaciMkpL9ofd5XeLhd66Kg">
+</div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-1.5">
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-extrabold truncate">Synapse Robotics</h3>
+<span class="material-symbols-outlined text-primary text-[18px] shrink-0" style="font-variation-settings: 'FILL' 1;" title="Empresa Verificada BWOS">verified</span>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-1 truncate">
+<span>🇲🇽 Monterrey, México</span>
+<span>•</span>
+<span>Industria 4.0</span>
+</span>
+</div>
+</div>
+<!-- Pulsing Status Dot -->
+<div class="flex items-center gap-1.5 shrink-0 bg-surface-container-low px-2 py-1 rounded-full" title="Usuario activo en el portal">
+<span class="relative flex h-2 w-2">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-secondary"></span>
+</span>
+<span class="font-label-sm text-label-sm text-secondary font-bold">Activo</span>
+</div>
+</div>
+<!-- Representative Persona Box -->
+<div class="flex items-center gap-2.5 p-2 rounded-lg bg-surface-container-low/60">
+<div class="w-7 h-7 rounded-full bg-primary-fixed flex items-center justify-center text-primary shrink-0">
+<span class="material-symbols-outlined text-[16px]">smart_toy</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-title-md text-title-md text-on-surface text-[13px] leading-tight font-bold truncate">Dra. Elena Villalobos</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant text-[11px] leading-tight truncate">Chief Technology Officer &amp; Founder</span>
+</div>
+</div>
+<!-- Bloque OFRECE -->
+<div class="rounded-lg p-3 bg-[#ECFDF5] flex flex-col gap-1">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm font-extrabold text-[#047857] flex items-center gap-1.5 uppercase tracking-wide">
+<span class="w-1.5 h-1.5 rounded-full bg-[#047857]"></span>
+                Ofrece
+              </span>
+<span class="font-label-sm text-label-sm text-[#047857]/80">Cobots Certificados</span>
+</div>
+<p class="font-body-md text-body-md text-[#064E3B] text-[13px] leading-snug">
+              Brazos robóticos colaborativos y visión artificial para control de calidad cero defectos en líneas de ensamble automotriz.
+            </p>
+</div>
+<!-- Bloque DEMANDA -->
+<div class="rounded-lg p-3 bg-surface-container-low flex flex-col gap-1">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm font-extrabold text-primary flex items-center gap-1.5 uppercase tracking-wide">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+                Demanda / Requiere
+              </span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Tier-1 / Tier-2</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface text-[13px] leading-snug">
+              Plantas manufactureras con volumen superior a 5,000 unidades diarias interesadas en auditorías de automatización piloto.
+            </p>
+</div>
+</div>
+<!-- Card Footer -->
+<div class="px-5 py-3 bg-surface-container-low/40 flex items-center justify-between gap-3 border-t border-surface-container-high/60">
+<div class="flex items-center gap-1.5 text-on-surface-variant font-label-md text-label-md">
+<span class="material-symbols-outlined text-[18px] text-primary">speed</span>
+<span>Capacidad comprobada</span>
+</div>
+<button class="h-10 px-space-md bg-primary-container hover:bg-primary text-on-primary font-title-md text-title-md rounded-lg shadow-sm active:scale-98 transition-all flex items-center gap-1.5" onclick="openModal('Synapse Robotics', 'Dra. Elena Villalobos · CTO')" type="button">
+<span>Conectar</span>
+<span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</button>
+</div>
+</article>
+<!-- TARJETA 5: InnovaTech Soluciones -->
+<article class="bg-surface-container-lowest rounded-xl shadow-sm ring-1 ring-outline-variant/50 hover:shadow-md hover:ring-primary/40 transition-all flex flex-col justify-between overflow-hidden group">
+<div class="p-5 flex flex-col gap-4">
+<!-- Card Header -->
+<div class="flex items-start justify-between gap-3">
+<div class="flex items-center gap-3 min-w-0">
+<div class="w-12 h-12 rounded-lg bg-surface-container-high flex items-center justify-center shrink-0 overflow-hidden relative shadow-inner">
+<img class="w-full h-full object-cover" data-alt="Fintech and corporate cyber compliance monogram logo geometric clean blue tones modern trust style" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD1qSA9DIGTR39OcOLrJ2uu5ag4StDp3Sf8x2OxFUhQIwnGoeVzLTPDQPl9Wt2z6paIE0R0SuXmH9k04GuhI9VSil9alk7vAV2ftRM_djiTIatAhS2444m1RQlvKKtOEFnUsCd9QdyWNHaL5pORGGyVJNXw1smmrTbGxPM_otumb3zN3eo0NENScyU_TkiqysuGI0hXh3hN5qrbpjwkRUmoi5mBb0gtiyiGACPEsSKESBpHeyiXurimKA">
+</div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-1.5">
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-extrabold truncate">InnovaTech Soluciones</h3>
+<span class="material-symbols-outlined text-primary text-[18px] shrink-0" style="font-variation-settings: 'FILL' 1;" title="Empresa Verificada BWOS">verified</span>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-1 truncate">
+<span>🇵🇪 Lima, Perú</span>
+<span>•</span>
+<span>Fintech &amp; Compliance</span>
+</span>
+</div>
+</div>
+<!-- Pulsing Status Dot -->
+<div class="flex items-center gap-1.5 shrink-0 bg-surface-container-low px-2 py-1 rounded-full" title="Usuario activo en el portal">
+<span class="relative flex h-2 w-2">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-secondary"></span>
+</span>
+<span class="font-label-sm text-label-sm text-secondary font-bold">Activo</span>
+</div>
+</div>
+<!-- Representative Persona Box -->
+<div class="flex items-center gap-2.5 p-2 rounded-lg bg-surface-container-low/60">
+<div class="w-7 h-7 rounded-full bg-primary-fixed flex items-center justify-center text-primary shrink-0">
+<span class="material-symbols-outlined text-[16px]">account_balance</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-title-md text-title-md text-on-surface text-[13px] leading-tight font-bold truncate">Renato Paredes Ruiz</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant text-[11px] leading-tight truncate">Gerente de Finanzas Corporativas B2B</span>
+</div>
+</div>
+<!-- Bloque OFRECE -->
+<div class="rounded-lg p-3 bg-[#ECFDF5] flex flex-col gap-1">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm font-extrabold text-[#047857] flex items-center gap-1.5 uppercase tracking-wide">
+<span class="w-1.5 h-1.5 rounded-full bg-[#047857]"></span>
+                Ofrece
+              </span>
+<span class="font-label-sm text-label-sm text-[#047857]/80">Factoring Inmediato</span>
+</div>
+<p class="font-body-md text-body-md text-[#064E3B] text-[13px] leading-snug">
+              Liquidación anticipada de cuentas por cobrar B2B transfronterizas sin recurso con tasas preferenciales indexadas a SOFR.
+            </p>
+</div>
+<!-- Bloque DEMANDA -->
+<div class="rounded-lg p-3 bg-surface-container-low flex flex-col gap-1">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm font-extrabold text-primary flex items-center gap-1.5 uppercase tracking-wide">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+                Demanda / Requiere
+              </span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Exportadores</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface text-[13px] leading-snug">
+              Empresas agroindustriales y metalmecánicas de la Alianza del Pacífico con facturación mayor a $2M USD anuales.
+            </p>
+</div>
+</div>
+<!-- Card Footer -->
+<div class="px-5 py-3 bg-surface-container-low/40 flex items-center justify-between gap-3 border-t border-surface-container-high/60">
+<div class="flex items-center gap-1.5 text-secondary font-label-md text-label-md font-bold">
+<span class="material-symbols-outlined text-[18px]">verified_user</span>
+<span>Match Score 91%</span>
+</div>
+<button class="h-10 px-space-md bg-primary-container hover:bg-primary text-on-primary font-title-md text-title-md rounded-lg shadow-sm active:scale-98 transition-all flex items-center gap-1.5" onclick="openModal('InnovaTech Soluciones', 'Renato Paredes Ruiz · Gerente de Finanzas')" type="button">
+<span>Conectar</span>
+<span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</button>
+</div>
+</article>
+<!-- TARJETA 6: Apex Renewable Solutions -->
+<article class="bg-surface-container-lowest rounded-xl shadow-sm ring-1 ring-outline-variant/50 hover:shadow-md hover:ring-primary/40 transition-all flex flex-col justify-between overflow-hidden group">
+<div class="p-5 flex flex-col gap-4">
+<!-- Card Header -->
+<div class="flex items-start justify-between gap-3">
+<div class="flex items-center gap-3 min-w-0">
+<div class="w-12 h-12 rounded-lg bg-surface-container-high flex items-center justify-center shrink-0 overflow-hidden relative shadow-inner">
+<img class="w-full h-full object-cover" data-alt="Clean tech energy logo industrial solar and smart grid minimal geometric lines on white" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCW-mS8q-vAiNzMmAdshZcjtZJ_vP4c8Qd5pfUo8kdXekSBnknEte1mv9FOLLBT5xkb7RxslSnBRjdmUJSY-4hgQXnxR-pUyFn_Xg8KHs1PiL7TckD15WSFbRpVFeyqmABAWo7gcJeBATUopdjF2CqOncf4xvS4RLTKrAoOZZWVk4lo2Pb4tpIJPIQyXpEHbVkJR1lb8AtbdHON-zqbJKLYFkNYQP-gBp03IYLyyqEAWIsUKdtF07nBRQ">
+</div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-1.5">
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-extrabold truncate">Apex Renewable</h3>
+<span class="material-symbols-outlined text-primary text-[18px] shrink-0" style="font-variation-settings: 'FILL' 1;" title="Empresa Verificada BWOS">verified</span>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-1 truncate">
+<span>🇨🇱 Antofagasta, Chile</span>
+<span>•</span>
+<span>Energía Limpia &amp; ESG</span>
+</span>
+</div>
+</div>
+<!-- Pulsing Status Dot -->
+<div class="flex items-center gap-1.5 shrink-0 bg-surface-container-low px-2 py-1 rounded-full" title="Usuario activo en el portal">
+<span class="relative flex h-2 w-2">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-secondary"></span>
+</span>
+<span class="font-label-sm text-label-sm text-secondary font-bold">Activo</span>
+</div>
+</div>
+<!-- Representative Persona Box -->
+<div class="flex items-center gap-2.5 p-2 rounded-lg bg-surface-container-low/60">
+<div class="w-7 h-7 rounded-full bg-secondary-fixed flex items-center justify-center text-secondary shrink-0">
+<span class="material-symbols-outlined text-[16px]">solar_power</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-title-md text-title-md text-on-surface text-[13px] leading-tight font-bold truncate">Camila Santander</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant text-[11px] leading-tight truncate">Directora de Soluciones de Eficiencia ESG</span>
+</div>
+</div>
+<!-- Bloque OFRECE -->
+<div class="rounded-lg p-3 bg-[#ECFDF5] flex flex-col gap-1">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm font-extrabold text-[#047857] flex items-center gap-1.5 uppercase tracking-wide">
+<span class="w-1.5 h-1.5 rounded-full bg-[#047857]"></span>
+                Ofrece
+              </span>
+<span class="font-label-sm text-label-sm text-[#047857]/80">PPA Comercial</span>
+</div>
+<p class="font-body-md text-body-md text-[#064E3B] text-[13px] leading-snug">
+              Micro-redes solares fotovoltaicas y almacenamiento en baterías industriales con cero inversión inicial (Capex $0).
+            </p>
+</div>
+<!-- Bloque DEMANDA -->
+<div class="rounded-lg p-3 bg-surface-container-low flex flex-col gap-1">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm font-extrabold text-primary flex items-center gap-1.5 uppercase tracking-wide">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+                Demanda / Requiere
+              </span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Alta Demanda</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface text-[13px] leading-snug">
+              Parques industriales o bodegas logísticas con más de 2,500 m² de superficie de cubierta libre para instalación técnica.
+            </p>
+</div>
+</div>
+<!-- Card Footer -->
+<div class="px-5 py-3 bg-surface-container-low/40 flex items-center justify-between gap-3 border-t border-surface-container-high/60">
+<div class="flex items-center gap-1.5 text-on-surface-variant font-label-md text-label-md">
+<span class="material-symbols-outlined text-[18px] text-secondary">videocam</span>
+<span>Disp. reunión inmediata</span>
+</div>
+<button class="h-10 px-space-md bg-primary-container hover:bg-primary text-on-primary font-title-md text-title-md rounded-lg shadow-sm active:scale-98 transition-all flex items-center gap-1.5" onclick="openModal('Apex Renewable', 'Camila Santander · Dir. Soluciones ESG')" type="button">
+<span>Conectar</span>
+<span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</button>
+</div>
+</article>
+</div>
+<!-- Paginación y Resumen de Flujo B2B -->
+<div class="max-w-[1400px] mx-auto mt-10 pt-6 border-t border-surface-container-high flex flex-col sm:flex-row items-center justify-between gap-4 pb-8">
+<span class="font-body-sm text-body-sm text-on-surface-variant">
+        Mostrando <span class="font-bold text-on-surface">6</span> de <span class="font-bold text-on-surface">24</span> organizaciones verificadas disponibles para encuentro
+      </span>
+<div class="flex items-center gap-2">
+<button class="w-9 h-9 rounded-lg bg-surface-container-lowest ring-1 ring-outline-variant/60 flex items-center justify-center text-on-surface-variant hover:bg-surface-container-low disabled:opacity-40" disabled="" type="button">
+<span class="material-symbols-outlined text-[18px]">chevron_left</span>
+</button>
+<button class="w-9 h-9 rounded-lg bg-primary text-on-primary font-title-md text-title-md flex items-center justify-center shadow-sm" type="button">
+          1
+        </button>
+<button class="w-9 h-9 rounded-lg bg-surface-container-lowest ring-1 ring-outline-variant/60 font-title-md text-title-md text-on-surface hover:bg-surface-container-low flex items-center justify-center" type="button">
+          2
+        </button>
+<button class="w-9 h-9 rounded-lg bg-surface-container-lowest ring-1 ring-outline-variant/60 font-title-md text-title-md text-on-surface hover:bg-surface-container-low flex items-center justify-center" type="button">
+          3
+        </button>
+<button class="w-9 h-9 rounded-lg bg-surface-container-lowest ring-1 ring-outline-variant/60 flex items-center justify-center text-on-surface-variant hover:bg-surface-container-low" type="button">
+<span class="material-symbols-outlined text-[18px]">chevron_right</span>
+</button>
+</div>
+</div>
+</section>
+<!-- Interactive Script for Filtering & Connection Modal -->
+<script>
+    function openModal(company, rep) {
+      const modal = document.getElementById('connect-modal');
+      const card = document.getElementById('modal-card');
+      document.getElementById('modal-company-name').textContent = company;
+      document.getElementById('modal-rep-name').textContent = rep;
+      
+      modal.classList.remove('opacity-0', 'pointer-events-none');
+      modal.classList.add('opacity-100');
+      card.classList.remove('scale-95');
+      card.classList.add('scale-100');
+    }
+
+    function closeModal() {
+      const modal = document.getElementById('connect-modal');
+      const card = document.getElementById('modal-card');
+      
+      modal.classList.add('opacity-0', 'pointer-events-none');
+      modal.classList.remove('opacity-100');
+      card.classList.add('scale-95');
+      card.classList.remove('scale-100');
+    }
+
+    function sendConnection() {
+      const comp = document.getElementById('modal-company-name').textContent;
+      alert('Solicitud enviada con éxito a ' + comp + '. Accediendo a la sala de espera privada...');
+      closeModal();
+    }
+
+    // Quick client search filter
+    document.getElementById('company-search')?.addEventListener('input', function(e) {
+      const query = e.target.value.toLowerCase().trim();
+      const cards = document.querySelectorAll('main article');
+      cards.forEach(card => {
+        const text = card.textContent.toLowerCase();
+        if (text.includes(query)) {
+          card.style.display = 'flex';
+        } else {
+          card.style.display = 'none';
+        }
+      });
+    });
+  </script>
+</div></main><footer class="w-full bg-surface-container-low"><div class="w-full px-gutter py-space-lg flex flex-col md:flex-row items-center justify-between gap-space-md"><div class="flex items-center gap-space-sm"><span class="font-title-md text-title-md text-on-surface font-bold">BWOS Conectar B2B</span><span class="font-body-sm text-body-sm text-on-surface-variant">© 2025 Plataforma Oficial de Vinculación y Ruedas de Negocios.</span></div><div class="flex items-center gap-space-lg text-on-surface-variant font-label-md text-label-md"><a class="hover:text-on-surface transition-colors" href="#">Privacidad y Tratamiento B2B</a><a class="hover:text-on-surface transition-colors" href="#">Soporte Técnico en Vivo</a><a class="hover:text-on-surface transition-colors" href="#">Términos del Encuentro</a></div></div></footer></body></html>

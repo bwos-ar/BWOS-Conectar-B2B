@@ -1,0 +1,6 @@
+{
+  "name": "BWOS Conectar B2B",
+  "description": "Plataforma oficial de acreditación empresarial, emparejamiento comercial B2B y rondas de negocios 1-a-1 en tiempo real.",
+  "requestFramePermissions": ["camera", "microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

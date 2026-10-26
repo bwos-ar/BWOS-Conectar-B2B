@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+
+<html lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="web_blank" name="shell-type"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<style>
+    @layer base {
+      html {
+        font-size: 16px;
+        scroll-behavior: smooth;
+      }
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: 'Hanken Grotesk', system-ui, -apple-system, sans-serif;
+        color: #131b2e;
+        background-color: #faf8ff;
+      }
+      ::-webkit-scrollbar {
+        display: none;
+      }
+    }
+
+    /* WCAG 2.2 AAA relative em-based typography system */
+    .text-em-xs    { font-size: 0.75em;  line-height: 1.4; }
+    .text-em-sm    { font-size: 0.875em; line-height: 1.45; }
+    .text-em-base  { font-size: 1em;     line-height: 1.55; }
+    .text-em-md    { font-size: 1.125em; line-height: 1.5; }
+    .text-em-title { font-size: 1.375em; line-height: 1.35; font-weight: 700; }
+    .text-em-h2    { font-size: 1.625em; line-height: 1.3; font-weight: 700; }
+    .text-em-h1    { font-size: 2.125em; line-height: 1.22; font-weight: 800; letter-spacing: -0.02em; }
+
+    @media (min-width: 1400px) {
+      .text-em-h1  { font-size: 2.375em; line-height: 1.2; }
+    }
+
+    /* Accessible high-contrast focus indicators */
+    input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible, a:focus-visible {
+      outline: 3px solid #003cb1 !important;
+      outline-offset: 2px !important;
+    }
+
+    /* Fixed aspect ratios to eliminate CLS (CLS = 0) */
+    .avatar-wrapper {
+      position: relative;
+      width: 2.875em;
+      aspect-ratio: 1 / 1;
+      border-radius: 9999px;
+      overflow: hidden;
+      flex-shrink: 0;
+      background-color: #eaedff;
+    }
+    .avatar-wrapper img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+  </style>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "surface-variant": "#dae2fd",
+            "background": "#faf8ff",
+            "on-secondary-container": "#00743b",
+            "on-secondary": "#ffffff",
+            "tertiary-container": "#526074",
+            "secondary-fixed-dim": "#4ae084",
+            "on-error-container": "#93000a",
+            "surface-container-high": "#e2e7ff",
+            "on-background": "#131b2e",
+            "secondary": "#006d38",
+            "surface": "#faf8ff",
+            "on-secondary-fixed-variant": "#005228",
+            "secondary-fixed": "#6bfe9e",
+            "primary-fixed-dim": "#b5c4ff",
+            "error-container": "#ffdad6",
+            "on-surface-variant": "#34384a",
+            "inverse-primary": "#b5c4ff",
+            "inverse-surface": "#283044",
+            "primary-container": "#1052e0",
+            "on-tertiary": "#ffffff",
+            "surface-bright": "#faf8ff",
+            "primary-fixed": "#dce1ff",
+            "on-tertiary-fixed-variant": "#3a485b",
+            "surface-dim": "#d2d9f4",
+            "on-primary": "#ffffff",
+            "inverse-on-surface": "#eef0ff",
+            "surface-container": "#eaedff",
+            "surface-tint": "#0d51df",
+            "outline": "#5a5e70",
+            "on-tertiary-fixed": "#0d1c2e",
+            "on-tertiary-container": "#ccdbf3",
+            "tertiary-fixed": "#d5e3fc",
+            "on-error": "#ffffff",
+            "surface-container-lowest": "#ffffff",
+            "secondary-container": "#d4f7e2",
+            "on-surface": "#131b2e",
+            "outline-variant": "#c3c5d7",
+            "tertiary": "#2e3a4a",
+            "on-secondary-fixed": "#00210d",
+            "error": "#b31b1b",
+            "surface-container-highest": "#dae2fd",
+            "on-primary-fixed": "#00164e",
+            "tertiary-fixed-dim": "#b9c7df",
+            "surface-container-low": "#f2f3ff",
+            "primary": "#003cb1",
+            "on-primary-container": "#d1d9ff",
+            "on-primary-fixed-variant": "#003bae"
+          },
+          fontFamily: {
+            sans: ["'Hanken Grotesk'", "sans-serif"]
+          }
+        }
+      }
+    };
+  </script>
+</head>
+<body class="min-h-screen bg-background text-on-surface antialiased flex flex-col justify-between">
+<!-- Top Navigation Header with BW2 Isotype & Official Acronym -->
+<header class="w-full bg-surface-container-lowest border-b border-surface-container-high py-[1em] px-[4%]">
+<div class="w-full max-w-[1920px] mx-auto flex items-center justify-between">
+<!-- Brand & Isotype BW2 -->
+<a aria-label="BWOS Conectar B2B - Inicio" class="flex items-center gap-[0.75em] group no-underline text-on-surface focus-visible:outline" href="#main-content">
+<div class="h-[2.75em] w-[2.75em] rounded-xl bg-primary text-on-primary font-extrabold flex items-center justify-center text-em-md shadow-md shadow-primary/20 group-hover:scale-105 transition-transform">
+<span class="tracking-tight text-white font-black">BW2</span>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center gap-[0.4em]">
+<span class="text-em-md font-extrabold text-on-surface tracking-tight">BWOS Conectar B2B</span>
+<span class="inline-block px-[0.4em] py-[0.1em] rounded bg-primary/10 text-primary text-em-xs font-bold uppercase tracking-wider">Summit 2025</span>
+</div>
+<span class="text-em-xs text-on-surface-variant font-medium">Plataforma Oficial de Acreditación y Rondas de Negocios</span>
+</div>
+</a>
+<!-- Header Status Indicator & Accessibility Quick Help -->
+<div class="hidden sm:flex items-center gap-[1.25em]">
+<div class="flex items-center gap-[0.5em] px-[0.875em] py-[0.375em] rounded-full bg-surface-container border border-surface-container-high">
+<span class="relative flex h-[0.625em] w-[0.625em]">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
+<span class="relative inline-flex rounded-full h-[0.625em] w-[0.625em] bg-secondary"></span>
+</span>
+<span class="text-em-xs font-bold text-on-surface">Red en Vivo Activa</span>
+</div>
+<span class="text-em-xs text-on-surface-variant font-medium">Protocolo WCAG 2.2 / AAA</span>
+</div>
+</div>
+</header>
+<!-- Main Workstation Layout - 1920px max-width, responsive tablet 1200px -->
+<main class="w-full flex-1 flex items-center justify-center py-[2.5em] px-[3%] lg:px-[4%] xl:px-[5%]" id="main-content">
+<div class="w-full max-w-[1920px] mx-auto">
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-[2.25em] xl:gap-[3.5em] items-start">
+<!-- Left Panel: Institutional & Live Social Proof -->
+<section aria-labelledby="section-presentation" class="lg:col-span-5 flex flex-col gap-[1.5em] xl:gap-[1.75em]">
+<!-- Event Header Badges -->
+<div class="flex flex-wrap items-center gap-[0.625em]">
+<span class="inline-flex items-center gap-[0.375em] px-[0.875em] py-[0.375em] rounded-full bg-primary/10 text-primary text-em-xs font-bold tracking-wider uppercase">
+<span aria-hidden="true" class="material-symbols-outlined text-[1.125em]">handshake</span>
+              Matchmaking B2B
+            </span>
+<span class="inline-flex items-center gap-[0.375em] px-[0.875em] py-[0.375em] rounded-full bg-secondary-container text-on-secondary-container text-em-xs font-bold">
+<span class="relative flex h-[0.5em] w-[0.5em]">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
+<span class="relative inline-flex rounded-full h-[0.5em] w-[0.5em] bg-secondary"></span>
+</span>
+              En vivo
+            </span>
+</div>
+<!-- Headline & Subtitle -->
+<div class="flex flex-col gap-[0.75em]">
+<div class="flex items-center gap-[0.5em] text-primary text-em-sm font-extrabold uppercase tracking-wide">
+<span>BWOS Summit 2025</span>
+<span aria-hidden="true" class="w-[0.35em] h-[0.35em] rounded-full bg-primary"></span>
+<span class="text-tertiary">Conectar</span>
+</div>
+<h1 class="text-em-h1 text-on-surface" id="section-presentation">
+              Acreditación Empresarial - Ingreso al Evento
+            </h1>
+<p class="text-em-base text-on-surface-variant font-normal">
+              Completa tu perfil de intercambio comercial para conectar con contrapartes afines en tiempo real durante las sesiones plenarias y mesas de negociación.
+            </p>
+</div>
+<!-- Key Visual Feature Card: Motor Neuronal B2B -->
+<div class="relative overflow-hidden rounded-2xl bg-surface-container-low border border-surface-container p-[1.5em] flex flex-col gap-[1.125em] shadow-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-[0.875em]">
+<div aria-hidden="true" class="w-[2.75em] h-[2.75em] rounded-xl bg-primary text-on-primary flex items-center justify-center shadow-sm">
+<span class="material-symbols-outlined text-[1.5em]">hub</span>
+</div>
+<div>
+<h2 class="text-em-title text-on-surface">Motor Neuronal B2B</h2>
+<p class="text-em-sm text-on-surface-variant">Matching predictivo por sectores</p>
+</div>
+</div>
+<span aria-label="Precisión del 98.4%" class="px-[0.75em] py-[0.25em] rounded-lg bg-secondary-container text-on-secondary-container font-extrabold text-em-xs">
+                98.4% Precisión
+              </span>
+</div>
+<!-- Accessibility-meter with explicit role & labels -->
+<div aria-label="Nivel de precisión del motor neuronal" aria-valuemax="100" aria-valuemin="0" aria-valuenow="98" class="w-full bg-surface-container-highest h-[0.5em] rounded-full overflow-hidden" role="progressbar">
+<div class="bg-primary-container h-full rounded-full w-[98%] transition-all duration-500"></div>
+</div>
+<div class="grid grid-cols-2 gap-[0.875em] pt-[0.25em]">
+<div class="bg-surface-container-lowest p-[1em] rounded-xl border border-surface-container">
+<p class="text-em-xs text-outline uppercase font-bold tracking-wider">Tiempo Promedio</p>
+<p class="text-em-title text-on-surface mt-[0.2em]">3.2 seg / Match</p>
+</div>
+<div class="bg-surface-container-lowest p-[1em] rounded-xl border border-surface-container">
+<p class="text-em-xs text-outline uppercase font-bold tracking-wider">Reuniones 1:1</p>
+<p class="text-em-title text-on-surface mt-[0.2em]">Cupos dinámicos</p>
+</div>
+</div>
+</div>
+<!-- Live Social Proof & Executive Avatars (CLS = 0 via aspect-ratio) -->
+<div class="rounded-2xl bg-surface-container-lowest p-[1.25em] border border-surface-container flex items-center gap-[1em] shadow-sm">
+<div aria-label="Ejecutivos conectados recientemente" class="flex -space-x-[0.75em] overflow-hidden">
+<div class="avatar-wrapper ring-2 ring-surface-container-lowest shadow-sm">
+<img alt="Fotografía ejecutiva en traje oscuro corporativo" height="46" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDTZIoFTfyrIY9DNnooG-l3PNxCTVfx4NX_k6wDFI6XKNS_-mekrbeQTrYSozZ2R3iJHtl_AoBXyOF22L6WzdbwlbP08Rk8ESR5OK0_FuOxPjg35uu2qxTM5wpCrquu-QYrKH8eXhhCecI4crHesCdH4Hyhi35FnZly5W8rjsX8R9OMmgeFks3TnnK-4f_-d4tClbc6V4D-1xHpE-s5sNvgdjcOqZBKhzsRdlFIYL8Lz2GSJbH6SXDYgw" width="46"/>
+</div>
+<div class="avatar-wrapper ring-2 ring-surface-container-lowest shadow-sm">
+<img alt="Directora de tecnología en oficina moderna contemporánea" height="46" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDOtzUERb0jOpXN1VRv49ZI3m0258vvCpMXQ-QtU4zN8HEGt3td-ao_4AmfPr0Vq6P1ktOQdfYBiN60VeODogiplx8BVGbeiaWHAqXUHBNKgJuj49KsVut4-87fF70RRCPgKUisWpJvzRsB7VIE63TEXarJXx71C_I12aziPOTx9apeljWOqM0-UT2AqYg6GpoZbRXO2hpN7iTB_vsDdwzMOibhsX-saU2F_FjMe5TrSmlWtUp545opKA" width="46"/>
+</div>
+<div class="avatar-wrapper ring-2 ring-surface-container-lowest shadow-sm">
+<img alt="Director de operaciones industriales de pie en planta" height="46" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAF4vkfrhM1ScqmxgW4tA4KPi1UeJtTb-SpHo1yqEXgbYwGp4bg5yHjDOmugnV3yz8AEgJlzii3lqUyl_cm7nSugMNsFQ5huirlSL3epJ6ZoBVRrQX-JB-w2gOZYGdNz9NX1IWA3rhegDmJNTcLhIfvwMNLnr4mbfDg9K1HDNLI-wU4ZL26HrXvnrdTukaegLaj2hBGbpyno5aM2eScg6s5a9JtpshPf9rQJH_Yf8r2jiYq0TLf1WE9hw" width="46"/>
+</div>
+<div class="avatar-wrapper ring-2 ring-surface-container-lowest bg-primary-fixed text-on-primary-fixed font-bold text-em-sm flex items-center justify-center">
+<span>+140</span>
+</div>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center gap-[0.375em]">
+<span aria-hidden="true" class="w-[0.5em] h-[0.5em] rounded-full bg-secondary"></span>
+<span class="text-em-base font-bold text-on-surface">Más de 140 directivos</span>
+</div>
+<p class="text-em-sm text-on-surface-variant font-medium">
+                conectados e intercambiando fichas en este momento
+              </p>
+</div>
+</div>
+<!-- Quick Trust Indicators (High Contrast, WCAG AAA compliant) -->
+<div class="flex flex-wrap items-center gap-x-[1.25em] gap-y-[0.5em] text-on-surface-variant px-[0.25em] text-em-sm font-semibold">
+<div class="flex items-center gap-[0.375em]">
+<span aria-hidden="true" class="material-symbols-outlined text-[1.25em] text-secondary">verified_user</span>
+<span>Fichas verificadas</span>
+</div>
+<div class="flex items-center gap-[0.375em]">
+<span aria-hidden="true" class="material-symbols-outlined text-[1.25em] text-primary">lock</span>
+<span>Datos encriptados</span>
+</div>
+<div class="flex items-center gap-[0.375em]">
+<span aria-hidden="true" class="material-symbols-outlined text-[1.25em] text-tertiary">bolt</span>
+<span>Acceso inmediato</span>
+</div>
+</div>
+</section>
+<!-- Right Panel: Accessible Accreditation Form -->
+<section aria-labelledby="form-heading" class="lg:col-span-7 bg-surface-container-lowest rounded-2xl border border-surface-container-high shadow-md p-[1.5em] sm:p-[2.25em] flex flex-col gap-[1.5em]">
+<div class="flex flex-col gap-[0.35em] border-b border-surface-container pb-[1em]">
+<div class="flex items-center justify-between flex-wrap gap-[0.5em]">
+<h2 class="text-em-h2 text-on-surface" id="form-heading">Ficha de Acreditación B2B</h2>
+<span class="text-em-xs uppercase font-extrabold bg-surface-container-high px-[0.75em] py-[0.25em] rounded-md text-tertiary">
+                Paso 1 de 1
+              </span>
+</div>
+<p class="text-em-sm text-on-surface-variant font-medium">
+              Ingresa tus datos exactos para generar tu credencial digital y alimentar el algoritmo de rondas.
+            </p>
+</div>
+<form class="flex flex-col gap-[1.375em]" id="accreditation-form" novalidate="" onsubmit="event.preventDefault(); handleRegistration();">
+<!-- Row 1: Full Name & Company -->
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-[1em]">
+<!-- Full Name Field -->
+<div class="flex flex-col gap-[0.375em]">
+<label class="text-em-sm font-bold text-on-surface flex items-center justify-between" for="fullName">
+<span>Nombre completo <abbr class="text-error no-underline font-black" title="Requerido">*</abbr></span>
+</label>
+<div class="relative flex items-center">
+<span aria-hidden="true" class="material-symbols-outlined absolute left-[0.75em] text-outline text-[1.25em] pointer-events-none">person</span>
+<input aria-required="true" class="w-full pl-[2.6em] pr-[0.875em] py-[0.75em] bg-surface rounded-xl border border-outline-variant text-on-surface placeholder:text-outline text-em-base transition-colors" id="fullName" name="fullName" placeholder="Ej. Sofia Alarcón" required="" type="text"/>
+</div>
+</div>
+<!-- Company Field -->
+<div class="flex flex-col gap-[0.375em]">
+<label class="text-em-sm font-bold text-on-surface flex items-center justify-between" for="companyName">
+<span>Empresa <abbr class="text-error no-underline font-black" title="Requerido">*</abbr></span>
+</label>
+<div class="relative flex items-center">
+<span aria-hidden="true" class="material-symbols-outlined absolute left-[0.75em] text-outline text-[1.25em] pointer-events-none">domain</span>
+<input aria-required="true" class="w-full pl-[2.6em] pr-[0.875em] py-[0.75em] bg-surface rounded-xl border border-outline-variant text-on-surface placeholder:text-outline text-em-base transition-colors" id="companyName" name="companyName" placeholder="Ej. Logística Global S.A." required="" type="text"/>
+</div>
+</div>
+</div>
+<!-- WhatsApp Phone with Country Code Picker -->
+<div class="flex flex-col gap-[0.375em]">
+<div class="flex items-center justify-between">
+<label class="text-em-sm font-bold text-on-surface" for="phone">
+                  WhatsApp Empresarial <abbr class="text-error no-underline font-black" title="Requerido">*</abbr>
+</label>
+<span class="text-outline text-em-xs font-semibold" id="phone-hint">Para alertas de reuniones 1:1</span>
+</div>
+<div class="flex rounded-xl border border-outline-variant overflow-hidden bg-surface transition-colors focus-within:border-primary">
+<div class="relative flex items-center bg-surface-container-high px-[0.75em] text-on-surface border-r border-outline-variant">
+<span aria-hidden="true" class="material-symbols-outlined text-secondary text-[1.25em] mr-[0.375em]">chat</span>
+<label class="sr-only" for="country-code">Código de país telefónico</label>
+<select class="bg-transparent text-em-sm font-bold text-on-surface outline-none cursor-pointer pr-[1.25em] appearance-none border-none py-[0.75em]" id="country-code">
+<option value="+52">🇲🇽 +52</option>
+<option value="+54">🇦🇷 +54</option>
+<option value="+56">🇨🇱 +56</option>
+<option value="+57">🇨🇴 +57</option>
+<option value="+51">🇵🇪 +51</option>
+<option value="+34">🇪🇸 +34</option>
+<option value="+1">🇺🇸 +1</option>
+</select>
+<span aria-hidden="true" class="material-symbols-outlined absolute right-[0.25em] text-outline text-[1em] pointer-events-none">arrow_drop_down</span>
+</div>
+<input aria-describedby="phone-hint" aria-required="true" class="w-full px-[0.875em] py-[0.75em] bg-transparent text-on-surface placeholder:text-outline text-em-base border-none outline-none" id="phone" name="phone" placeholder="55 1234 5678" required="" type="tel"/>
+</div>
+</div>
+<!-- Section Divider: Matriz de Intercambio Comercial -->
+<div class="relative py-[0.5em] flex items-center justify-center">
+<div aria-hidden="true" class="w-full h-px bg-surface-container-high"></div>
+<span class="absolute bg-surface-container-lowest px-[0.875em] text-em-xs text-outline uppercase font-extrabold tracking-wider">
+                Matriz de Intercambio Comercial
+              </span>
+</div>
+<!-- Offer & Demand Textareas -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-[1em]">
+<!-- Qué Ofrezco (Oferta B2B) -->
+<div class="flex flex-col gap-[0.5em] p-[1em] rounded-xl bg-surface-container-low border border-surface-container">
+<div class="flex items-center justify-between">
+<label class="text-em-base text-on-surface font-bold flex items-center gap-[0.375em]" for="offering">
+<span aria-hidden="true" class="w-[0.5em] h-[0.5em] rounded-full bg-secondary"></span>
+                    Qué ofrezco
+                  </label>
+<span class="text-em-xs px-[0.5em] py-[0.15em] rounded bg-secondary-container text-on-secondary-container uppercase font-extrabold">Oferta B2B</span>
+</div>
+<p class="text-em-xs text-on-surface-variant font-medium" id="offering-desc">
+                  Describe tus productos clave, capacidades industriales, soluciones SaaS o consultoría que pones a disposición del ecosistema.
+                </p>
+<textarea aria-describedby="offering-desc offering-counter" aria-required="true" class="w-full p-[0.75em] bg-surface-container-lowest rounded-lg border border-outline-variant text-on-surface placeholder:text-outline text-em-sm resize-none focus:border-secondary transition-colors" id="offering" maxlength="300" name="offering" placeholder="Ej. Fabricación de empaques biodegradables para exportación masiva y logística de frío en México y Centroamérica..." required="" rows="4"></textarea>
+<div aria-live="polite" class="flex items-center justify-between text-em-xs text-outline font-semibold" id="offering-counter">
+<span>Mínimo 20 caracteres</span>
+<span id="offering-count">0/300</span>
+</div>
+</div>
+<!-- Qué Demando (Demanda B2B) -->
+<div class="flex flex-col gap-[0.5em] p-[1em] rounded-xl bg-surface-container-low border border-surface-container">
+<div class="flex items-center justify-between">
+<label class="text-em-base text-on-surface font-bold flex items-center gap-[0.375em]" for="demand">
+<span aria-hidden="true" class="w-[0.5em] h-[0.5em] rounded-full bg-primary"></span>
+                    Qué demando
+                  </label>
+<span class="text-em-xs px-[0.5em] py-[0.15em] rounded bg-primary/10 text-primary uppercase font-extrabold">Demanda B2B</span>
+</div>
+<p class="text-em-xs text-on-surface-variant font-medium" id="demand-desc">
+                  Especifica insumos, partners tecnológicos, proveedores certificados o alianzas estratégicas que buscas incorporar hoy.
+                </p>
+<textarea aria-describedby="demand-desc demand-counter" aria-required="true" class="w-full p-[0.75em] bg-surface-container-lowest rounded-lg border border-outline-variant text-on-surface placeholder:text-outline text-em-sm resize-none focus:border-primary transition-colors" id="demand" maxlength="300" name="demand" placeholder="Ej. Proveedores de materia prima reciclada grado alimenticio (rPET) con capacidad de entrega mensual de 50 toneladas..." required="" rows="4"></textarea>
+<div aria-live="polite" class="flex items-center justify-between text-em-xs text-outline font-semibold" id="demand-counter">
+<span>Mínimo 20 caracteres</span>
+<span id="demand-count">0/300</span>
+</div>
+</div>
+</div>
+<!-- Synchronizing Notice Banner -->
+<div class="p-[1em] rounded-xl bg-surface-container border border-surface-container-high flex items-center gap-[0.75em]">
+<div aria-hidden="true" class="p-[0.5em] rounded-lg bg-primary-container text-on-primary shrink-0">
+<span class="material-symbols-outlined text-[1.25em]">sync</span>
+</div>
+<p class="text-em-sm text-on-surface font-medium leading-relaxed">
+                Tu ficha sincronizará con el <strong class="font-bold text-primary">algoritmo de emparejamiento</strong> apenas ingreses al lobby, priorizando agendas comerciales directas.
+              </p>
+</div>
+<!-- Primary Action Button: Accessible High-Contrast Blue -->
+<button class="w-full py-[0.875em] px-[1.5em] bg-primary-container hover:bg-primary text-on-primary rounded-xl font-bold text-em-base flex items-center justify-center gap-[0.5em] shadow-md transition-all active:scale-[0.99] cursor-pointer" id="btn-submit" type="submit">
+<span>Ingresar al Lobby</span>
+<span aria-hidden="true" class="material-symbols-outlined text-[1.25em]">arrow_forward</span>
+</button>
+</form>
+</section>
+</div>
+</div>
+</main>
+<!-- Footer with WCAG AAA status & institutional credits -->
+<footer class="w-full border-t border-surface-container py-[1.25em] px-[4%] bg-surface-container-lowest text-outline text-em-xs">
+<div class="w-full max-w-[1920px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-[0.5em]">
+<div class="flex items-center gap-[0.5em]">
+<span class="font-extrabold text-on-surface">BW2</span>
+<span>•</span>
+<span>BWOS Conectar B2B © 2025 Summit. Todos los derechos reservados.</span>
+</div>
+<div class="flex items-center gap-[1em]">
+<span>Cumplimiento WCAG 2.2 Nivel AAA</span>
+<span>•</span>
+<a class="text-primary hover:underline font-semibold" href="#accreditation-form">Subir al formulario</a>
+</div>
+</div>
+</footer>
+<script>
+    // Live character counters
+    const offeringInput = document.getElementById('offering');
+    const offeringCount = document.getElementById('offering-count');
+    if (offeringInput && offeringCount) {
+      offeringInput.addEventListener('input', (e) => {
+        offeringCount.textContent = `${e.target.value.length}/300`;
+      });
+    }
+
+    const demandInput = document.getElementById('demand');
+    const demandCount = document.getElementById('demand-count');
+    if (demandInput && demandCount) {
+      demandInput.addEventListener('input', (e) => {
+        demandCount.textContent = `${e.target.value.length}/300`;
+      });
+    }
+
+    function handleRegistration() {
+      const form = document.getElementById('accreditation-form');
+      if (form && !form.checkValidity()) {
+        form.reportValidity();
+        return;
+      }
+
+      const btn = document.getElementById('btn-submit');
+      if (btn) {
+        btn.innerHTML = `
+          <span class="material-symbols-outlined animate-spin text-[1.25em]" aria-hidden="true">progress_activity</span>
+          <span>Acreditando y conectando...</span>
+        `;
+        btn.disabled = true;
+        btn.classList.add('opacity-90', 'cursor-not-allowed');
+
+        setTimeout(() => {
+          btn.innerHTML = `
+            <span class="material-symbols-outlined text-[1.25em]" aria-hidden="true">check_circle</span>
+            <span>¡Acreditación Exitosa! Redirigiendo al Lobby...</span>
+          `;
+          btn.classList.remove('bg-primary-container', 'hover:bg-primary');
+          btn.classList.add('bg-secondary');
+        }, 1200);
+      }
+    }
+  </script>
+</body></html>

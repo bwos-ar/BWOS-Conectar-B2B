@@ -1,0 +1,174 @@
+---
+name: BWOS Conectar
+colors:
+  surface: '#faf8ff'
+  surface-dim: '#d2d9f4'
+  surface-bright: '#faf8ff'
+  surface-container-lowest: '#ffffff'
+  surface-container-low: '#f2f3ff'
+  surface-container: '#eaedff'
+  surface-container-high: '#e2e7ff'
+  surface-container-highest: '#dae2fd'
+  on-surface: '#131b2e'
+  on-surface-variant: '#434655'
+  inverse-surface: '#283044'
+  inverse-on-surface: '#eef0ff'
+  outline: '#737686'
+  outline-variant: '#c3c5d7'
+  surface-tint: '#0d51df'
+  primary: '#003cb1'
+  on-primary: '#ffffff'
+  primary-container: '#1052e0'
+  on-primary-container: '#d1d9ff'
+  inverse-primary: '#b5c4ff'
+  secondary: '#006d38'
+  on-secondary: '#ffffff'
+  secondary-container: '#6bfe9e'
+  on-secondary-container: '#00743b'
+  tertiary: '#3a485c'
+  on-tertiary: '#ffffff'
+  tertiary-container: '#526074'
+  on-tertiary-container: '#ccdbf3'
+  error: '#ba1a1a'
+  on-error: '#ffffff'
+  error-container: '#ffdad6'
+  on-error-container: '#93000a'
+  primary-fixed: '#dce1ff'
+  primary-fixed-dim: '#b5c4ff'
+  on-primary-fixed: '#00164e'
+  on-primary-fixed-variant: '#003bae'
+  secondary-fixed: '#6bfe9e'
+  secondary-fixed-dim: '#4ae084'
+  on-secondary-fixed: '#00210d'
+  on-secondary-fixed-variant: '#005228'
+  tertiary-fixed: '#d5e3fc'
+  tertiary-fixed-dim: '#b9c7df'
+  on-tertiary-fixed: '#0d1c2e'
+  on-tertiary-fixed-variant: '#3a485b'
+  background: '#faf8ff'
+  on-background: '#131b2e'
+  surface-variant: '#dae2fd'
+typography:
+  headline-lg:
+    fontFamily: Hanken Grotesk
+    fontSize: 30px
+    fontWeight: '800'
+    lineHeight: 38px
+    letterSpacing: -0.02em
+  headline-md:
+    fontFamily: Hanken Grotesk
+    fontSize: 22px
+    fontWeight: '700'
+    lineHeight: 28px
+    letterSpacing: -0.015em
+  headline-sm:
+    fontFamily: Hanken Grotesk
+    fontSize: 18px
+    fontWeight: '700'
+    lineHeight: 24px
+    letterSpacing: -0.01em
+  title-md:
+    fontFamily: Hanken Grotesk
+    fontSize: 16px
+    fontWeight: '700'
+    lineHeight: 22px
+    letterSpacing: -0.005em
+  body-lg:
+    fontFamily: Hanken Grotesk
+    fontSize: 16px
+    fontWeight: '400'
+    lineHeight: 24px
+  body-md:
+    fontFamily: Hanken Grotesk
+    fontSize: 14px
+    fontWeight: '400'
+    lineHeight: 20px
+  body-sm:
+    fontFamily: Hanken Grotesk
+    fontSize: 12px
+    fontWeight: '500'
+    lineHeight: 16px
+  label-md:
+    fontFamily: Hanken Grotesk
+    fontSize: 12px
+    fontWeight: '600'
+    lineHeight: 16px
+    letterSpacing: 0.02em
+  label-sm:
+    fontFamily: Hanken Grotesk
+    fontSize: 11px
+    fontWeight: '700'
+    lineHeight: 14px
+    letterSpacing: 0.04em
+rounded:
+  sm: 0.25rem
+  DEFAULT: 0.5rem
+  md: 0.75rem
+  lg: 1rem
+  xl: 1.5rem
+  full: 9999px
+spacing:
+  gutter: 1rem
+  margin: 1rem
+  space-xs: 0.25rem
+  space-sm: 0.5rem
+  space-md: 0.875rem
+  space-lg: 1.25rem
+  space-xl: 1.75rem
+---
+
+## Brand & Style
+
+This design system targets modern B2B matchmaking, networking, and supply chain collaboration on mobile-first workflows. The design style combines modern enterprise minimalism with high-clarity transactional design: crisp white foundations, purposeful color accents, and structured metadata chips.
+
+The tone is authoritative yet frictionless, confident, and business-focused. The user interface eliminates visual noise to prioritize business opportunities, counterparty credibility, and instant actionability. Visual hierarchy relies on typography scale and precise semantic badges rather than excessive decorative styling.
+
+## Colors
+
+- **Primary (`#1052E0`):** Vibrant cobalt blue dedicated to the principal calls-to-action like "Conectar", primary tab navigation states, and key interactive prompts.
+- **Secondary (`#00BA63`):** Vivid emerald green reserved for active status signals (e.g., online, verified company status, active deals) and the "Ofrece" (Supply) context.
+- **Tertiary (`#475569`):** Balanced slate grey for structured categorization, inactive icons, and neutral metadata chips such as secondary attributes.
+- **Neutral (`#0F172A`):** Deep ink navy used for crisp, high-contrast headings, text hierarchy, and structured borders.
+- **Canvas & Backgrounds:** The base canvas is `#FFFFFF`, supported by a clean `#F8FAFC` for grouped card containers and `#F1F5F9` for interactive dividers and badge surfaces.
+- **Demand Context:** Demand ("Demanda") badges utilize `#E06D10` (warm amber/orange) or deep slate depending on urgency, maintaining distinction from "Ofrece".
+
+## Typography
+
+The design system relies entirely on **Hanken Grotesk** across all roles to achieve an uncluttered, modern European tech look. 
+
+Company titles and key business entity names must be styled with high visual prominence (`title-md` or `headline-sm`, `fontWeight: 700` or `800`). Metadata labels and status indicators leverage uppercase or sentence-cased `label-sm` with slight positive tracking to ensure instant scannability on handheld screens.
+
+## Layout & Spacing
+
+A mobile-first fluid layout built on a standard 4-column system for viewports under 600px, expanding to 8 columns for tablets and 12 columns for desktop portals.
+
+- Mobile screen margins are fixed at `1rem` (16px) to maximize horizontal data density while preserving tap ergonomics.
+- Content elements and cards stack vertically with `0.75rem` to `1rem` gaps.
+- Internal component padding uses `space-md` for balanced card density without crowding key information points.
+
+## Elevation & Depth
+
+Depth is minimal, airy, and clinical. The system deliberately avoids aggressive Drop Shadows in favor of subtle layered surface contrast and ambient illumination:
+
+- **Level 0 (Flat/Base):** Pure `#FFFFFF` background.
+- **Level 1 (Cards & Modules):** `#FFFFFF` paired with an ultra-soft ambient shadow: `0px 2px 8px -2px rgba(15, 23, 42, 0.05), 0px 1px 3px -1px rgba(15, 23, 42, 0.04)` and a delicate border `1px solid rgba(226, 232, 240, 0.8)`.
+- **Level 2 (Overlays & Floating Actions):** Bottom navigation bars, drawers, and modal sheets: `0px 8px 24px -4px rgba(15, 23, 42, 0.08)`.
+
+## Shapes
+
+The design system adopts **Level 2 (Rounded)** for a modern, tactile feel that softens dense corporate information without appearing childish.
+
+- Standard cards, sheet containers, and input fields use `0.5rem` (8px).
+- Action buttons, badges, and company avatar containers use `0.75rem` (12px) or full circular/pill treatment for tags.
+- Tag and status chips are consistently styled as soft rounded pills (`9999px` radius) to differentiate them from square-form structural data cards.
+
+## Components
+
+- **Company Profile Card:** A pristine white container with a 1px border (`#E2E8F0`) and subtle level-1 shadow. The header includes the company logo thumbnail (`rounded-md`), company name in bold (`Hanken Grotesk 700`, `#0F172A`), verified badge, and a pulsing status dot in secondary green (`#00BA63`).
+- **Structured Metadata Badges ("Ofrece" & "Demanda"):**
+  - **Ofrece (Offer):** Soft green background tint (`#ECFDF5`), deep green text (`#047857`), and a micro dot indicator.
+  - **Demanda (Demand):** Soft blue-slate background tint (`#F1F5F9`), neutral dark text (`#334155`), with an optional orange accent line or tag for immediate contrast.
+- **Primary Action ("Conecta" Button):** High-saturation vibrant blue (`#1052E0`) button with solid white bold text, height of 44px for thumb accessibility, rounded-lg (`0.75rem`), and active state feedback (scale: 0.98, background `#0C42B8`).
+- **Status Indicator:** 8px circular indicator using vivid green (`#00BA63`) surrounded by a subtle 2px translucent ping/halo (`rgba(0, 186, 99, 0.2)`) denoting real-time activity and responsiveness.
+- **Form Inputs:** Pure white background, `1px solid #CBD5E1`, smooth focus transition to `2px solid #1052E0` with zero glow.
+- **Search & Filter Bar:** Sticky mobile search bar with embedded quick-filter chips for immediate switching between "Todo", "Ofertas", and "Demandas".

@@ -1,0 +1,489 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"><meta content="mobile_tab" name="shell-type"><link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&amp;family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@100..900&amp;display=swap" rel="stylesheet"><style>@layer base{html,body{width:100vw;margin:0;padding:0;}body{overscroll-behavior:none;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "surface-bright": "#faf8ff", "surface-tint": "#0d51df", "tertiary": "#3a485c", "on-primary-fixed": "#00164e", "tertiary-fixed-dim": "#b9c7df", "on-tertiary-container": "#ccdbf3", "secondary": "#006d38", "error": "#ba1a1a", "surface-container-lowest": "#ffffff", "surface-variant": "#dae2fd", "surface-container": "#eaedff", "on-primary-fixed-variant": "#003bae", "surface-dim": "#d2d9f4", "inverse-on-surface": "#eef0ff", "outline": "#737686", "on-tertiary-fixed": "#0d1c2e", "surface-container-high": "#e2e7ff", "primary-container": "#1052e0", "on-secondary-container": "#00743b", "outline-variant": "#c3c5d7", "on-tertiary-fixed-variant": "#3a485b", "secondary-container": "#6bfe9e", "primary-fixed": "#dce1ff", "tertiary-fixed": "#d5e3fc", "on-error-container": "#93000a", "background": "#faf8ff", "surface-container-highest": "#dae2fd", "on-background": "#131b2e", "surface-container-low": "#f2f3ff", "inverse-surface": "#283044", "error-container": "#ffdad6", "surface": "#faf8ff", "on-primary-container": "#d1d9ff", "on-secondary-fixed-variant": "#005228", "on-surface": "#131b2e", "on-secondary-fixed": "#00210d", "on-surface-variant": "#434655", "on-tertiary": "#ffffff", "inverse-primary": "#b5c4ff", "on-error": "#ffffff", "tertiary-container": "#526074", "on-secondary": "#ffffff", "primary-fixed-dim": "#b5c4ff", "secondary-fixed": "#6bfe9e", "primary": "#003cb1", "on-primary": "#ffffff", "secondary-fixed-dim": "#4ae084" }, "borderRadius": { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, "spacing": { "gutter": "1rem", "space-md": "0.875rem", "space-lg": "1.25rem", "margin": "1rem", "space-xl": "1.75rem", "space-sm": "0.5rem", "space-xs": "0.25rem" }, "fontFamily": { "body-lg": ["Hanken Grotesk"], "body-sm": ["Hanken Grotesk"], "title-md": ["Hanken Grotesk"], "headline-lg": ["Hanken Grotesk"], "headline-sm": ["Hanken Grotesk"], "label-sm": ["Hanken Grotesk"], "headline-md": ["Hanken Grotesk"], "label-md": ["Hanken Grotesk"], "body-md": ["Hanken Grotesk"] }, "fontSize": { "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }], "body-sm": ["12px", { "lineHeight": "16px", "fontWeight": "500" }], "title-md": ["16px", { "lineHeight": "22px", "letterSpacing": "-0.005em", "fontWeight": "700" }], "headline-lg": ["30px", { "lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "800" }], "headline-sm": ["18px", { "lineHeight": "24px", "letterSpacing": "-0.01em", "fontWeight": "700" }], "label-sm": ["11px", { "lineHeight": "14px", "letterSpacing": "0.04em", "fontWeight": "700" }], "headline-md": ["22px", { "lineHeight": "28px", "letterSpacing": "-0.015em", "fontWeight": "700" }], "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "600" }], "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }] } } } };</script></head><body class="bg-surface font-body-md text-on-surface flex flex-col min-h-screen"><header class="fixed top-0 inset-x-0 z-50 bg-surface/80 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] pt-safe"><div class="h-16 px-margin flex items-center justify-between gap-space-sm"><div class="flex items-center gap-space-sm min-w-0"><div class="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shrink-0"><span class="text-on-primary font-headline-sm text-headline-sm">B</span></div><div class="flex flex-col min-w-0"><span class="text-label-sm font-label-sm uppercase tracking-wider text-outline">BWOS Conectar B2B</span><span class="text-title-md font-title-md text-on-surface truncate">Virtual Lobby</span></div></div><div class="flex items-center gap-space-xs"><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="flex flex-col relative w-full pt-16 pb-24 bg-surface min-h-screen"><div class="flex flex-col w-full">
+<!-- Sticky Search & Live Radar Controls -->
+<section class="sticky top-16 z-30 bg-surface/95 backdrop-blur-md px-margin pt-space-sm pb-space-md shadow-sm">
+<!-- Search Bar with Instant Filter -->
+<div class="relative w-full">
+<span class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-outline">
+<span class="material-symbols-outlined text-[20px]">search</span>
+</span>
+<input class="w-full pl-11 pr-10 py-2.5 rounded-xl bg-surface-container-lowest text-on-surface text-body-md font-body-md placeholder:text-outline shadow-sm focus:outline-none focus:bg-surface-container-lowest transition-all" id="b2b-search" placeholder="Buscar empresas, representantes, ofertas o demandas..." type="search">
+<button aria-label="Limpiar búsqueda" class="hidden absolute inset-y-0 right-0 items-center pr-3 text-outline hover:text-on-surface" id="clear-search" type="button">
+<span class="material-symbols-outlined text-[18px]">close</span>
+</button>
+</div>
+<!-- Quick Industry/Mode Chips -->
+<div class="flex items-center gap-space-xs mt-space-sm overflow-x-auto no-scrollbar py-0.5">
+<button class="filter-chip active shrink-0 px-3 py-1 rounded-full bg-primary text-on-primary font-label-sm text-label-sm shadow-sm transition-all" data-category="all">
+        Todos (24)
+      </button>
+<button class="filter-chip shrink-0 px-3 py-1 rounded-full bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm hover:bg-surface-container transition-all" data-category="saas">
+        SaaS &amp; Tech
+      </button>
+<button class="filter-chip shrink-0 px-3 py-1 rounded-full bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm hover:bg-surface-container transition-all" data-category="logistica">
+        Logística &amp; Fintech
+      </button>
+<button class="filter-chip shrink-0 px-3 py-1 rounded-full bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm hover:bg-surface-container transition-all" data-category="manufactura">
+        Manufactura
+      </button>
+</div>
+</section>
+<!-- Live Room Presence Pulse Bar -->
+<section class="px-margin pt-space-sm pb-space-xs">
+<div class="w-full bg-surface-container-lowest rounded-xl p-space-sm shadow-sm flex items-center justify-between">
+<div class="flex items-center gap-space-sm">
+<div class="relative flex items-center justify-center w-8 h-8 rounded-lg bg-secondary/10">
+<span class="relative flex h-3 w-3">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
+<span class="relative inline-flex rounded-full h-3 w-3 bg-secondary"></span>
+</span>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center gap-1.5">
+<span class="font-headline-sm text-headline-sm text-on-surface tracking-tight" id="active-counter">142</span>
+<span class="font-label-sm text-label-sm uppercase tracking-wide text-secondary font-bold">En Línea</span>
+</div>
+<span class="text-body-sm font-body-sm text-on-surface-variant">Empresas con tomadores de decisión activos</span>
+</div>
+</div>
+<div class="flex items-center -space-x-2 pl-2">
+<div class="w-7 h-7 rounded-full bg-surface-container-highest flex items-center justify-center text-label-sm font-label-sm text-primary shadow-xs">
+          CL
+        </div>
+<div class="w-7 h-7 rounded-full bg-surface-container-highest flex items-center justify-center text-label-sm font-label-sm text-secondary shadow-xs">
+          MX
+        </div>
+<div class="w-7 h-7 rounded-full bg-primary text-on-primary flex items-center justify-center text-label-sm font-label-sm shadow-xs font-bold">
+          +8
+        </div>
+</div>
+</div>
+</section>
+<!-- Business Cards Grid Container -->
+<section class="px-margin pt-space-xs pb-space-lg flex flex-col gap-space-md" id="cards-container">
+<!-- Card 1: SaaS / Tech Cloud -->
+<article class="b2b-card bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden flex flex-col transition-transform active:scale-[0.99]" data-tags="saas tech erp crm ia ai nube">
+<div class="p-space-md flex flex-col gap-space-sm">
+<!-- Header: Company & Live Indicator -->
+<div class="flex items-start justify-between gap-space-sm">
+<div class="flex items-center gap-space-sm min-w-0">
+<img class="w-12 h-12 rounded-lg object-cover shrink-0 shadow-xs" data-alt="Modern corporate logo badge with blue geometrical shapes on crisp white background for cloud tech enterprise in minimal style" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD060r9TfWAsbIjJBwsNY3j1kszvtMWj1Md1Exgv2lG9INZ7Q3_rHqeoFAhpEfBxlMcqBBUxDWlmy8pZk8ZU4pTIPO_X-dtzwURTV02zhs77WtePx3LeD0tGxrp9JUAa6IguHn3rXhMrXB0tcb8mzm05aSaFZclxLPdshsDNmwgh2Lh6CC_Lh8FiY8FReOU7-863fonD35xGw9ZgM8G1IKF5Ubd4gsHx6LByvRWWFCUb6xOs-VWn2753w">
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-1.5">
+<h3 class="font-title-md text-title-md text-on-surface truncate">Kurox Cloud AI</h3>
+<span class="material-symbols-outlined text-[16px] text-primary" style="font-variation-settings: 'FILL' 1;" title="Empresa Verificada">verified</span>
+</div>
+<span class="text-body-sm font-body-sm text-on-surface-variant truncate">SaaS Enterprise • Madrid, ES</span>
+</div>
+</div>
+<!-- Online Status Badge -->
+<div class="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-secondary/10 shrink-0">
+<span class="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
+<span class="text-label-sm font-label-sm text-secondary">Activo ahora</span>
+</div>
+</div>
+<!-- Executive Representative -->
+<div class="flex items-center gap-2 py-1 px-2.5 rounded-lg bg-surface-container-low">
+<span class="material-symbols-outlined text-[18px] text-tertiary">badge</span>
+<div class="flex items-baseline gap-1.5 truncate">
+<span class="font-label-md text-label-md text-on-surface">Valeria Méndez</span>
+<span class="text-body-sm font-body-sm text-on-surface-variant">• Directora de Expansión Latam</span>
+</div>
+</div>
+<!-- Structured Offer & Demand -->
+<div class="grid grid-cols-1 gap-2 pt-0.5">
+<!-- Ofrece -->
+<div class="rounded-lg p-2.5 bg-secondary-container/20 flex flex-col gap-0.5">
+<div class="flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-on-secondary-container">Ofrece</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface pl-3">
+              Plataforma de automatización de conciliación fiscal multi-divisa y analítica predictiva B2B con integración API rápida.
+            </p>
+</div>
+<!-- Busca -->
+<div class="rounded-lg p-2.5 bg-surface-container-high/60 flex flex-col gap-0.5">
+<div class="flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant">Busca</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface pl-3">
+              Partners distribuidores ERP regionales y alianzas con despachos contables corporativos con cartera superior a 50 cuentas.
+            </p>
+</div>
+</div>
+<!-- Action Area -->
+<div class="pt-2 flex items-center justify-between gap-space-sm">
+<div class="flex items-center gap-1 text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px]">schedule</span>
+<span class="text-label-sm font-label-sm">Disp. para reunión inmediata</span>
+</div>
+<button class="connect-btn h-11 px-5 rounded-lg bg-primary-container text-on-primary font-title-md text-title-md shadow-sm active:scale-95 transition-all flex items-center justify-center gap-1.5" data-company="Kurox Cloud AI" type="button">
+<span class="material-symbols-outlined text-[18px]">handshake</span>
+<span>Conectar</span>
+</button>
+</div>
+</div>
+</article>
+<!-- Card 2: Manufactura & Packaging Sostenible -->
+<article class="b2b-card bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden flex flex-col transition-transform active:scale-[0.99]" data-tags="manufactura empaque packaging industrial supply sustentable">
+<div class="p-space-md flex flex-col gap-space-sm">
+<!-- Header -->
+<div class="flex items-start justify-between gap-space-sm">
+<div class="flex items-center gap-space-sm min-w-0">
+<img class="w-12 h-12 rounded-lg object-cover shrink-0 shadow-xs" data-alt="Industrial minimalist emblem of sustainable container factory with green-leaf metallic accents for manufacturing company clean photo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBM_hMQNhP5aWc6jUU_q-tIA-hiP2j7e3xg75p9vNP4maUuhd7CUviR4_HTm6wrVWipaSdN6XHg4NyOA3zbm9MIGHsbxOyIXu5i1rwYN-bSglBCc5JD_mh0Zx7VmNtlEyHrgvdsG_Lhgc-5PcuqB5RyKZYwuODFeYAsb3Ka3rFU3CfdefeqRfo6alivjo9g10NN57yI5AChvEMmK7q4XDnbS6bQB4DCnMvf_bbWDCiabroUNgbfTyIROA">
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-1.5">
+<h3 class="font-title-md text-title-md text-on-surface truncate">Envases BioNova</h3>
+<span class="material-symbols-outlined text-[16px] text-primary" style="font-variation-settings: 'FILL' 1;" title="Empresa Verificada">verified</span>
+</div>
+<span class="text-body-sm font-body-sm text-on-surface-variant truncate">Manufactura • Monterrey, MX</span>
+</div>
+</div>
+<!-- Online Indicator -->
+<div class="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-secondary/10 shrink-0">
+<span class="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
+<span class="text-label-sm font-label-sm text-secondary">Activo ahora</span>
+</div>
+</div>
+<!-- Representative -->
+<div class="flex items-center gap-2 py-1 px-2.5 rounded-lg bg-surface-container-low">
+<span class="material-symbols-outlined text-[18px] text-tertiary">badge</span>
+<div class="flex items-baseline gap-1.5 truncate">
+<span class="font-label-md text-label-md text-on-surface">Ing. Carlos Villarreal</span>
+<span class="text-body-sm font-body-sm text-on-surface-variant">• VP Comercial &amp; Operaciones</span>
+</div>
+</div>
+<!-- Structured Offer & Demand -->
+<div class="grid grid-cols-1 gap-2 pt-0.5">
+<!-- Ofrece -->
+<div class="rounded-lg p-2.5 bg-secondary-container/20 flex flex-col gap-0.5">
+<div class="flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-on-secondary-container">Ofrece</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface pl-3">
+              Packaging biodegradable compostable grado alimenticio ISO-9001 y capacidad de inyección masiva personalizada.
+            </p>
+</div>
+<!-- Busca -->
+<div class="rounded-lg p-2.5 bg-surface-container-high/60 flex flex-col gap-0.5">
+<div class="flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant">Busca</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface pl-3">
+              Proveedores directos de biopolímeros base fécula certificada y maquiladores farmacéuticos de gran volumen.
+            </p>
+</div>
+</div>
+<!-- Action Area -->
+<div class="pt-2 flex items-center justify-between gap-space-sm">
+<div class="flex items-center gap-1 text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px]">verified_user</span>
+<span class="text-label-sm font-label-sm">Capacidad comprobada</span>
+</div>
+<button class="connect-btn h-11 px-5 rounded-lg bg-primary-container text-on-primary font-title-md text-title-md shadow-sm active:scale-95 transition-all flex items-center justify-center gap-1.5" data-company="Envases BioNova" type="button">
+<span class="material-symbols-outlined text-[18px]">handshake</span>
+<span>Conectar</span>
+</button>
+</div>
+</div>
+</article>
+<!-- Card 3: Logística Transfronteriza & Fintech -->
+<article class="b2b-card bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden flex flex-col transition-transform active:scale-[0.99]" data-tags="logistica freight fintech aduanas comercio transporte">
+<div class="p-space-md flex flex-col gap-space-sm">
+<!-- Header -->
+<div class="flex items-start justify-between gap-space-sm">
+<div class="flex items-center gap-space-sm min-w-0">
+<img class="w-12 h-12 rounded-lg object-cover shrink-0 shadow-xs" data-alt="Abstract freight vector monogram symbol combining shipping vessel and financial arrows in navy and cyan tones" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBJ4x7s26nfK38PI0oZeBWwYisX8uKR5vtPNPfpYVV-yZ6WmPHTrGJvnqWwolAZAyOwdDlPOyCx9KXem8e5XvCfCgmfyLGgHPmp6QE85nGl_tglIIxbFbukf5SgImtpMoh13euYq1WSnmml3NxA7C5uRqvfwpX5vyFz7mk1UNWJm_i7YHifvSvpNdFkpbRdthaZy_xDH7ipnaS9sRI47Bfm6EtPMy06Jp1BF1nOF2bsym8TstlAg2vQXw">
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-1.5">
+<h3 class="font-title-md text-title-md text-on-surface truncate">Vectra Logistics &amp; Pay</h3>
+<span class="material-symbols-outlined text-[16px] text-primary" style="font-variation-settings: 'FILL' 1;" title="Empresa Verificada">verified</span>
+</div>
+<span class="text-body-sm font-body-sm text-on-surface-variant truncate">Logística &amp; Factoring • Bogotá, CO</span>
+</div>
+</div>
+<!-- Online Indicator -->
+<div class="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-secondary/10 shrink-0">
+<span class="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
+<span class="text-label-sm font-label-sm text-secondary">Activo ahora</span>
+</div>
+</div>
+<!-- Representative -->
+<div class="flex items-center gap-2 py-1 px-2.5 rounded-lg bg-surface-container-low">
+<span class="material-symbols-outlined text-[18px] text-tertiary">badge</span>
+<div class="flex items-baseline gap-1.5 truncate">
+<span class="font-label-md text-label-md text-on-surface">Mariana Gómez Silva</span>
+<span class="text-body-sm font-body-sm text-on-surface-variant">• Head of Global Trade Finance</span>
+</div>
+</div>
+<!-- Structured Offer & Demand -->
+<div class="grid grid-cols-1 gap-2 pt-0.5">
+<!-- Ofrece -->
+<div class="rounded-lg p-2.5 bg-secondary-container/20 flex flex-col gap-0.5">
+<div class="flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-on-secondary-container">Ofrece</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface pl-3">
+              Fletes marítimos consolidados LCL/FCL y factoraje internacional con anticipo de liquidez en menos de 24 horas.
+            </p>
+</div>
+<!-- Busca -->
+<div class="rounded-lg p-2.5 bg-surface-container-high/60 flex flex-col gap-0.5">
+<div class="flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant">Busca</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface pl-3">
+              Importadores de insumos agroindustriales y fabricantes de tecnología médica con operaciones en puertos del Pacífico.
+            </p>
+</div>
+</div>
+<!-- Action Area -->
+<div class="pt-2 flex items-center justify-between gap-space-sm">
+<div class="flex items-center gap-1 text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px]">speed</span>
+<span class="text-label-sm font-label-sm">Tiempo resp: &lt; 5 min</span>
+</div>
+<button class="connect-btn h-11 px-5 rounded-lg bg-primary-container text-on-primary font-title-md text-title-md shadow-sm active:scale-95 transition-all flex items-center justify-center gap-1.5" data-company="Vectra Logistics &amp; Pay" type="button">
+<span class="material-symbols-outlined text-[18px]">handshake</span>
+<span>Conectar</span>
+</button>
+</div>
+</div>
+</article>
+<!-- Card 4: Automatización Industrial & Robótica -->
+<article class="b2b-card bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden flex flex-col transition-transform active:scale-[0.99]" data-tags="manufactura robotica automatizacion sensores iot maquinarias">
+<div class="p-space-md flex flex-col gap-space-sm">
+<!-- Header -->
+<div class="flex items-start justify-between gap-space-sm">
+<div class="flex items-center gap-space-sm min-w-0">
+<img class="w-12 h-12 rounded-lg object-cover shrink-0 shadow-xs" data-alt="High tech robotic arm gear icon badge representing automation engineering firm in steel blue and crisp white" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDbK0Tp2w1ftGSFtgm-G52bC6ZM0AV9ejWt7vU8Yh8jQb1gfBVHcCaIe_Z5ojzGe8W0qE9JFwEr4tvNQayrygYTdc0-cmiXwq4m2-pDAUMJ3uMaYgJuYuT3XhJTJEFc3jlOOBDIEb4pPm2fApV7ZaJsK1EaOc5I8sje1CTgiHqemIwASxLIjlIh01QtOitDy5nFn50VK1h7UnkooA_vyGiA2efx-_evwIVRjSwXToiM2tLDrntp6De-zA">
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-1.5">
+<h3 class="font-title-md text-title-md text-on-surface truncate">Synapse Robotics</h3>
+<span class="material-symbols-outlined text-[16px] text-primary" style="font-variation-settings: 'FILL' 1;" title="Empresa Verificada">verified</span>
+</div>
+<span class="text-body-sm font-body-sm text-on-surface-variant truncate">Industria 4.0 • Santiago, CL</span>
+</div>
+</div>
+<!-- Online Indicator -->
+<div class="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-secondary/10 shrink-0">
+<span class="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
+<span class="text-label-sm font-label-sm text-secondary">Activo ahora</span>
+</div>
+</div>
+<!-- Representative -->
+<div class="flex items-center gap-2 py-1 px-2.5 rounded-lg bg-surface-container-low">
+<span class="material-symbols-outlined text-[18px] text-tertiary">badge</span>
+<div class="flex items-baseline gap-1.5 truncate">
+<span class="font-label-md text-label-md text-on-surface">Felipe Arancibia</span>
+<span class="text-body-sm font-body-sm text-on-surface-variant">• Gerente de Soluciones IoT</span>
+</div>
+</div>
+<!-- Structured Offer & Demand -->
+<div class="grid grid-cols-1 gap-2 pt-0.5">
+<!-- Ofrece -->
+<div class="rounded-lg p-2.5 bg-secondary-container/20 flex flex-col gap-0.5">
+<div class="flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-on-secondary-container">Ofrece</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface pl-3">
+              Sensores IoT industriales para mantenimiento predictivo y celdas de paletizado robótico llave en mano.
+            </p>
+</div>
+<!-- Busca -->
+<div class="rounded-lg p-2.5 bg-surface-container-high/60 flex flex-col gap-0.5">
+<div class="flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant">Busca</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface pl-3">
+              Plantas embotelladoras, fábricas de alimentos o centros de distribución en proceso de automatización integral.
+            </p>
+</div>
+</div>
+<!-- Action Area -->
+<div class="pt-2 flex items-center justify-between gap-space-sm">
+<div class="flex items-center gap-1 text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px]">groups</span>
+<span class="text-label-sm font-label-sm">Stand virtual disponible</span>
+</div>
+<button class="connect-btn h-11 px-5 rounded-lg bg-primary-container text-on-primary font-title-md text-title-md shadow-sm active:scale-95 transition-all flex items-center justify-center gap-1.5" data-company="Synapse Robotics" type="button">
+<span class="material-symbols-outlined text-[18px]">handshake</span>
+<span>Conectar</span>
+</button>
+</div>
+</div>
+</article>
+</section>
+<!-- Empty State Fallback -->
+<section class="hidden px-margin py-12 flex flex-col items-center justify-center text-center" id="empty-state">
+<div class="w-16 h-16 rounded-full bg-surface-container flex items-center justify-center text-outline mb-3">
+<span class="material-symbols-outlined text-[32px]">manage_search</span>
+</div>
+<h4 class="font-headline-sm text-headline-sm text-on-surface mb-1">Sin coincidencias en este momento</h4>
+<p class="font-body-md text-body-md text-on-surface-variant max-w-xs mb-4">
+      Prueba con otros términos como 'SaaS', 'Packaging', 'Logística' o restablece los filtros.
+    </p>
+<button class="px-4 py-2 rounded-lg bg-surface-container-highest text-primary font-title-md text-title-md active:scale-95 transition-all" id="reset-filter-btn" type="button">
+      Restablecer búsqueda
+    </button>
+</section>
+<!-- Match Confirmation Toast Feedback -->
+<aside class="fixed bottom-20 left-4 right-4 z-50 transform translate-y-32 opacity-0 transition-all duration-300 pointer-events-none" id="match-toast">
+<div class="bg-inverse-surface text-inverse-on-surface px-4 py-3 rounded-xl shadow-lg flex items-center justify-between gap-3">
+<div class="flex items-center gap-2.5 min-w-0">
+<span class="material-symbols-outlined text-secondary-fixed text-[22px]">check_circle</span>
+<div class="flex flex-col min-w-0">
+<span class="font-title-md text-title-md leading-tight truncate" id="toast-title">¡Solicitud enviada!</span>
+<span class="font-body-sm text-body-sm text-inverse-on-surface/80 truncate">Notificando a la contraparte para agendar</span>
+</div>
+</div>
+<span class="text-label-sm font-label-sm text-primary-fixed bg-surface-tint/20 px-2 py-1 rounded">B2B Match</span>
+</div>
+</aside>
+</div>
+<script>
+  (function () {
+    const searchInput = document.getElementById('b2b-search');
+    const clearBtn = document.getElementById('clear-search');
+    const cards = document.querySelectorAll('.b2b-card');
+    const emptyState = document.getElementById('empty-state');
+    const resetBtn = document.getElementById('reset-filter-btn');
+    const filterChips = document.querySelectorAll('.filter-chip');
+    const toast = document.getElementById('match-toast');
+    const toastTitle = document.getElementById('toast-title');
+    const activeCounter = document.getElementById('active-counter');
+
+    let currentCategory = 'all';
+
+    // Live counter subtle heartbeat simulation
+    setInterval(() => {
+      const delta = Math.floor(Math.random() * 3) - 1;
+      let val = parseInt(activeCounter.textContent, 10) + delta;
+      if (val < 135) val = 138;
+      if (val > 152) val = 148;
+      activeCounter.textContent = val;
+    }, 6500);
+
+    function filterCards() {
+      const query = searchInput.value.toLowerCase().trim();
+      let visibleCount = 0;
+
+      cards.forEach((card) => {
+        const text = card.textContent.toLowerCase();
+        const tags = card.getAttribute('data-tags') || '';
+        const matchesQuery = query === '' || text.includes(query) || tags.includes(query);
+
+        let matchesCat = true;
+        if (currentCategory === 'saas') {
+          matchesCat = tags.includes('saas') || tags.includes('tech');
+        } else if (currentCategory === 'logistica') {
+          matchesCat = tags.includes('logistica') || tags.includes('fintech');
+        } else if (currentCategory === 'manufactura') {
+          matchesCat = tags.includes('manufactura') || tags.includes('industrial');
+        }
+
+        if (matchesQuery && matchesCat) {
+          card.classList.remove('hidden');
+          visibleCount++;
+        } else {
+          card.classList.add('hidden');
+        }
+      });
+
+      if (visibleCount === 0) {
+        emptyState.classList.remove('hidden');
+      } else {
+        emptyState.classList.add('hidden');
+      }
+
+      if (query.length > 0) {
+        clearBtn.classList.remove('hidden');
+        clearBtn.classList.add('flex');
+      } else {
+        clearBtn.classList.add('hidden');
+        clearBtn.classList.remove('flex');
+      }
+    }
+
+    searchInput.addEventListener('input', filterCards);
+
+    clearBtn.addEventListener('click', () => {
+      searchInput.value = '';
+      filterCards();
+      searchInput.focus();
+    });
+
+    resetBtn.addEventListener('click', () => {
+      searchInput.value = '';
+      currentCategory = 'all';
+      filterChips.forEach((chip) => {
+        chip.classList.remove('bg-primary', 'text-on-primary');
+        chip.classList.add('bg-surface-container-high', 'text-on-surface-variant');
+        if (chip.getAttribute('data-category') === 'all') {
+          chip.classList.add('bg-primary', 'text-on-primary');
+          chip.classList.remove('bg-surface-container-high', 'text-on-surface-variant');
+        }
+      });
+      filterCards();
+    });
+
+    filterChips.forEach((chip) => {
+      chip.addEventListener('click', () => {
+        filterChips.forEach((c) => {
+          c.classList.remove('bg-primary', 'text-on-primary');
+          c.classList.add('bg-surface-container-high', 'text-on-surface-variant');
+        });
+        chip.classList.add('bg-primary', 'text-on-primary');
+        chip.classList.remove('bg-surface-container-high', 'text-on-surface-variant');
+        currentCategory = chip.getAttribute('data-category');
+        filterCards();
+      });
+    });
+
+    // Handle Connection Action Micro-interactions
+    const connectButtons = document.querySelectorAll('.connect-btn');
+    let toastTimeout;
+
+    connectButtons.forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        const company = btn.getAttribute('data-company');
+        const isConnected = btn.getAttribute('data-state') === 'connected';
+
+        if (!isConnected) {
+          btn.setAttribute('data-state', 'connected');
+          btn.innerHTML = `<span class="material-symbols-outlined text-[18px]">check</span><span>Conectado</span>`;
+          btn.classList.remove('bg-primary-container', 'text-on-primary');
+          btn.classList.add('bg-secondary-container', 'text-on-secondary-container');
+
+          toastTitle.textContent = `Invitación enviada a ${company}`;
+          showToast();
+        } else {
+          btn.setAttribute('data-state', 'idle');
+          btn.innerHTML = `<span class="material-symbols-outlined text-[18px]">handshake</span><span>Conectar</span>`;
+          btn.classList.remove('bg-secondary-container', 'text-on-secondary-container');
+          btn.classList.add('bg-primary-container', 'text-on-primary');
+        }
+      });
+    });
+
+    function showToast() {
+      clearTimeout(toastTimeout);
+      toast.classList.remove('translate-y-32', 'opacity-0', 'pointer-events-none');
+      toast.classList.add('translate-y-0', 'opacity-100');
+
+      toastTimeout = setTimeout(() => {
+        toast.classList.remove('translate-y-0', 'opacity-100');
+        toast.classList.add('translate-y-32', 'opacity-0', 'pointer-events-none');
+      }, 3200);
+    }
+  })();
+</script></main><nav class="fixed bottom-0 inset-x-0 z-50 pb-safe bg-surface/85 backdrop-blur-xl shadow-[0_8px_24px_-4px_rgba(15,23,42,0.08)]" data-active-classes="text-primary font-label-md"><div class="flex justify-around items-center h-16 px-space-xs"><a aria-current="page" class="flex flex-col items-center justify-center gap-space-xs min-w-[56px] min-h-[44px] transition-colors text-primary font-label-md" data-path="virtual-lobby" href="#"><span class="material-symbols-outlined text-[24px]">dashboard</span><span class="font-label-sm text-label-sm">Lobby</span></a><a class="flex flex-col items-center justify-center gap-space-xs min-w-[56px] min-h-[44px] text-on-surface-variant transition-colors hover:text-on-surface" data-path="networking-cards" href="#"><span class="material-symbols-outlined text-[24px]">handshake</span><span class="font-label-sm text-label-sm">Conectar</span></a><a class="flex flex-col items-center justify-center gap-space-xs min-w-[56px] min-h-[44px] text-on-surface-variant transition-colors hover:text-on-surface relative" data-path="notifications-and-meetings" href="#"><span class="material-symbols-outlined text-[24px]">notifications</span><span class="absolute top-1 right-3 w-2 h-2 rounded-full bg-secondary ring-2 ring-surface"></span><span class="font-label-sm text-label-sm">Alertas</span></a><a class="flex flex-col items-center justify-center gap-space-xs min-w-[56px] min-h-[44px] text-on-surface-variant transition-colors hover:text-on-surface" data-path="my-business-profile" href="#"><span class="material-symbols-outlined text-[24px]">business_center</span><span class="font-label-sm text-label-sm">Perfil</span></a></div></nav></body></html>

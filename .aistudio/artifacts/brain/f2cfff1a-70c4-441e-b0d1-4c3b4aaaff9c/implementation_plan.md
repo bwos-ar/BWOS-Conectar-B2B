@@ -1,117 +1,109 @@
-# Notificaciones por EmailJS y Control de Admisión con OK Obligatorio del Administrador
+# Reporte Semanal Programado de Métricas por EmailJS y Enlace Directo de Aprobación para el Administrador
 
-Este plan incorpora el servicio de notificaciones por correo electrónico mediante **EmailJS** desde el frontend para alertas de conexiones B2B, solicitudes de reunión 1-a-1 y admisión de nuevos ejecutivos, junto con un **sistema de bloqueo y aprobación obligatoria por parte del administrador (`clientesbinweb@gmail.com`)** tanto para el formulario de invitación como para la pestaña de Ingreso Autorizado.
+Este plan incorpora en el **Dashboard de Administración** la programación automática y envío bajo demanda de un **Reporte Semanal de Métricas de la Plataforma** mediante el servicio EmailJS existente, y resuelve el flujo de aprobación desde la primera pantalla incluyendo un **enlace directo de aprobación (`One-Click Approval Link`)** dentro del correo que recibe el administrador (`clientesbinweb@gmail.com`).
 
 ## User Review & Critical Decisions
 
 > [!IMPORTANT]
-> Se han consolidado las decisiones confirmadas para garantizar que ningún usuario externo pueda acceder al directorio sin el "OK" explícito del administrador y que todas las interacciones clave disparen notificaciones vía EmailJS:
+> **Decisiones confirmadas por el usuario en la etapa de clarificación:**
 
-- **Eventos que Disparan Notificación por EmailJS**:
-  1. **Invitación de Conexión B2B (`Speed-Pitch`)**: Envía correo a la contraparte comercial (con copia/respaldo a `clientesbinweb@gmail.com`) incluyendo un formulario simple de confirmación/personalización de envío.
-  2. **Solicitud de Reunión 1-a-1 (Sala Jitsi Meet / Agenda B2B)**: Notifica por email el enlace de la sala Jitsi, horario o reprogramación (+15 min).
-  3. **Solicitud de Invitación / Solicitud de Ingreso Autorizado**: Envía un correo inmediato a `clientesbinweb@gmail.com` alertando que una empresa espera el "OK" de admisión.
-  4. **Resolución de Admisión (OK del Administrador)**: Cuando el administrador aprueba una cuenta, se dispara un email de bienvenida indicando que su correo ya tiene el "OK" para entrar en *Ingreso Autorizado*.
-- **Regla Estricta de Admisión ("Sin el OK del administrador no puede ingresar")**:
-  - Ningún visitante puede ingresar automáticamente al enviar el formulario ni al escribir un correo no aprobado en *Ingreso Autorizado*.
-  - Únicamente la cuenta maestra `clientesbinweb@gmail.com` posee acceso administrativo directo para gestionar y aprobar solicitudes.
-  - Cualquier otro correo debe figurar en la lista de **Cuentas Aprobadas por el Administrador (`status: 'approved'`)** para poder superar la pantalla de *Ingreso Autorizado*.
+- **Programación del Reporte Semanal en el Dashboard de Administración**: Configuración de día de la semana y hora con activación/desactivación del envío automático por EmailJS, indicador del próximo despacho y botón **"Enviar Resumen Semanal Ahora"** para disparo inmediato.
+- **Métricas incluidas en el Reporte Semanal enviado a `clientesbinweb@gmail.com`**:
+  1. Total de empresas registradas, reuniones agendadas (confirmadas, pendientes, pospuestas) y tasa de éxito de conexión B2B (%).
+  2. Resumen de solicitudes de acceso (pendientes de OK, aprobadas y rechazadas).
+  3. Total de correos despachados por EmailJS durante los últimos 7 días.
+  4. Desglose de empresas e interacciones por sector industrial.
+- **Enlace directo de aprobación en el correo enviado desde la primera pantalla**: Cada vez que un ejecutivo solicita invitación o intenta ingresar por *Ingreso Autorizado* desde la portada, el correo enviado vía EmailJS a `clientesbinweb@gmail.com` incluirá un **enlace directo de aprobación** (`?admin_action=approve_request&email=...&name=...&company=...&sector=...`). Al hacer clic en ese enlace desde el correo, la aplicación abrirá la sesión del administrador, aprobará automáticamente la solicitud (otorgando el "OK" obligatorio), notificará al solicitante por EmailJS de que su acceso ya está habilitado y llevará al administrador directamente al Dashboard de Administración con confirmación visual.
 
 ---
 
 ## 1. Overview & Core Concept
 
 - **What It Does**:
-  - Integra un módulo cliente de **EmailJS** (`@emailjs/browser` / REST API oficial de EmailJS) con soporte para variables de entorno (`VITE_EMAILJS_SERVICE_ID`, `VITE_EMAILJS_TEMPLATE_ID`, `VITE_EMAILJS_PUBLIC_KEY`), formulario de envío rápido y bandeja de historial de correos enviados.
-  - Establece un flujo de **Control de Acceso por Aprobación Administrativa (`clientesbinweb@gmail.com`)**, donde tanto las solicitudes del formulario inicial como los intentos en *Ingreso Autorizado* requieren el "OK" explícito del administrador antes de desbloquear el Lobby Virtual.
-- **Target Audience / Persona**:
-  - **Administrador General (`clientesbinweb@gmail.com`)**: Recibe por email cada solicitud de acceso o conexión, revisa la cola de admisión desde el panel superior y otorga o revoca el "OK" de ingreso.
-  - **Directivos y Empresas Invitadas**: Solicitan admisión, reciben confirmación por correo cuando el administrador les da el "OK", e ingresan por *Ingreso Autorizado* con su correo corporativo aprobado.
-- **Key Value**:
-  - Control total sobre quién accede a los datos confidenciales del directorio en producción piloto y trazabilidad por correo electrónico de cada vínculo B2B.
+  1. **Programador de Reporte Semanal de Métricas (EmailJS)**: En la pestaña de **Métricas de Uso del Sistema** (con acceso rápido también desde el Historial de EmailJS), el administrador puede activar o pausar un cronograma semanal (eligiendo día de la semana, ej. Lunes a Viernes/Domingo, y hora de corte), visualizar cuándo se envió el último reporte y cuándo corresponde el próximo envío automático, previsualizar el contenido estructurado del informe y dispararlo manualmente en cualquier momento con un clic.
+  2. **Enlace de Aprobación de 1 Clic en el Correo al Administrador**: En la primera pantalla (Portada de Invitación), cuando un usuario solicita acceso, el servicio EmailJS genera una URL firmada con los datos de la solicitud (`approval_url` e incluida también dentro del cuerpo `message`). Cuando `clientesbinweb@gmail.com` recibe el correo y hace clic en el enlace **"Aprobar Invitación / Dar OK Ahora"**, la plataforma procesa automáticamente el parámetro de la URL, registra el estado `approved` para ese correo, envía el email de confirmación al usuario invitado y muestra un aviso de confirmación en el Dashboard de Administración.
+- **Target Audience / Persona**: Exclusivo para la cuenta administradora maestra (`clientesbinweb@gmail.com`) y los ejecutivos B2B que solicitan admisión desde la portada.
+- **Key Value**: Elimina la fricción de tener que copiar el correo del solicitante y buscarlo manualmente para aprobarlo tras recibir el email, y automatiza el seguimiento ejecutivo semanal del ecosistema B2B directamente en la bandeja de entrada del administrador.
 
 ---
 
 ## 2. User Experience & Visual Design
 
 - **Key User Flows**:
-  1. **Flujo de Solicitud e Ingreso Autorizado con OK Obligatorio**:
-     - **En "Quiero ingresar, solicito invitación"**: El ejecutivo completa sus datos y hasta 2 sectores. Al enviar, la solicitud queda registrada en estado `PENDIENTE DE OK DEL ADMINISTRADOR` y dispara una notificación por EmailJS a `clientesbinweb@gmail.com`. No se desbloquea el directorio.
-     - **En "Ingreso Autorizado"**:
-       - Si ingresa `clientesbinweb@gmail.com`: Entra directamente con privilegios de Administrador y acceso al **Panel de Admisión y Aprobaciones**.
-       - Si ingresa un correo corporativo que **aún NO tiene el OK del administrador**: El sistema impide el acceso, muestra un aviso claro (*"Acceso retenido: Tu cuenta requiere la respuesta y aprobación obligatoria del administrador clientesbinweb@gmail.com"*), y ofrece un botón para enviar un recordatorio de autorización por EmailJS al administrador.
-       - Si ingresa un correo corporativo que **YA recibió el OK del administrador**: El sistema valida la aprobación y desbloquea el Lobby Virtual con los datos acreditados de su empresa.
-  2. **Flujo del Administrador (`clientesbinweb@gmail.com`) — Panel "Dar OK de Ingreso"**:
-     - En la barra superior del administrador aparece el botón **"Admisión B2B (Pendientes)"** con contador numérico en tiempo real.
-     - Al abrir el modal de Admisión, el administrador visualiza todas las solicitudes (provenientes tanto del formulario como de intentos de Ingreso Autorizado) y también puede **pre-autorizar un correo manualmente**.
-     - Al pulsar **"Dar OK / Aprobar Ingreso"**, el correo pasa a estado `Aprobado` y se envía automáticamente la notificación por EmailJS al usuario confirmando que ya puede ingresar.
-  3. **Flujo de Notificación EmailJS en Conexiones y Reuniones**:
-     - En el modal de **Speed-Pitch (Conectar)** y al **Agendar / Posponer Reunión 1-a-1**, se incorpora la sección de **Notificación por EmailJS** (con destinatario corporativo, copia a `clientesbinweb@gmail.com`, asunto y mensaje editable) que dispara el envío al confirmar la acción.
-     - Un botón en el Header permite consultar la **Bandeja de Notificaciones EmailJS** (registro de correos disparados, estado de entrega y configuración de credenciales EmailJS).
+  1. **Flujo de Solicitud en Primera Pantalla con Link de Aprobación en el Email**:
+     - Un usuario completa el formulario *"Quiero ingresar, solicito invitación"* o intenta entrar por *"Ingreso Autorizado"*.
+     - Se construye dinámicamente el enlace de aprobación basado en `window.location.origin` con los parámetros codificados de la solicitud (`admin_action=approve_request`, `email`, `name`, `company`, `role`, `sector`, `contact`).
+     - El correo enviado por EmailJS a `clientesbinweb@gmail.com` incluye el enlace clicable tanto en el cuerpo del mensaje (`message`) como en variables dedicadas de plantilla (`approval_url`, `reject_url`, `admin_dashboard_url`) para que funcione sin importar cómo esté configurada la plantilla en EmailJS.
+     - Cuando el administrador abre su correo y hace clic en el enlace de aprobación, la aplicación detecta la acción al cargar, activa la sesión de `clientesbinweb@gmail.com`, aprueba inmediatamente la solicitud (dando el "OK"), envía el correo de bienvenida/aprobación al solicitante vía EmailJS, limpia los parámetros de la URL y abre el **Dashboard de Administración** mostrando una confirmación destacada.
+  2. **Flujo de Programación y Envío del Reporte Semanal en el Dashboard Admin**:
+     - Dentro del **Dashboard de Administración** (Pestaña 3: *Métricas de Uso del Sistema*), se incorpora el panel **"Programación de Reporte Semanal por EmailJS"**.
+     - El administrador puede:
+       - Activar/Desactivar el interruptor de **Envío Automático Semanal**.
+       - Seleccionar el **Día de la semana** (Lunes a Domingo) y la **Hora programada** (formato 24h tabular).
+       - Consultar la fecha/hora del **Último reporte enviado** y del **Próximo envío programado**.
+       - Hacer clic en **"Previsualizar Resumen"** para inspeccionar el texto exacto con las 4 categorías de métricas seleccionadas.
+       - Hacer clic en **"Enviar Resumen Ahora"** para despachar inmediatamente el correo a `clientesbinweb@gmail.com` mediante EmailJS y registrarlo en el Historial de EmailJS con la etiqueta `weekly_report`.
 - **Visual Identity & Theme**:
-  - Mantiene la estética institucional ejecutiva (`#161f30`, azul corporativo `#004ac6`, esmeralda `#047857` para estados aprobados y ámbar `#d97706` para solicitudes que aguardan el OK del administrador).
-  - Numerales tabulares (`tabular-nums`) en contadores de solicitudes pendientes y registros de auditoría de correos.
+  - Conserva la estética ejecutiva B2B en tonos pizarra profundos (`#161f30`), azul institucional (`#004ac6`), verde esmeralda de confirmación (`#047857`) y tipografía tabular (`tabular-nums`) para contadores, tasas porcentuales, fechas de programación y métricas semanales.
+  - Superficies limpias de un solo nivel de elevación con bordes sutiles de 1px y controles en una sola línea (`whitespace-nowrap`).
 
 ---
 
 ## 3. Key Product Decisions & Trade-Offs
 
-- **Decision 1: Integración Dual de EmailJS (Variables de Entorno + Configuración Dinámica en App)**
-  - *Chosen Approach*: Conectar el SDK oficial de EmailJS leyendo `VITE_EMAILJS_SERVICE_ID`, `VITE_EMAILJS_TEMPLATE_ID` y `VITE_EMAILJS_PUBLIC_KEY` desde `.env`, permitiendo además que el administrador (`clientesbinweb@gmail.com`) configure o pruebe sus IDs de EmailJS directamente desde el modal de notificaciones sin necesidad de recompilar si desea cambiar de plantilla en Netlify.
-  - *Why*: Garantiza que el envío funcione de inmediato en producción y que nunca falle silenciosamente si las llaves aún se están configurando, registrando cada correo en el historial auditable.
-- **Decision 2: Verificación Estricta de Lista Blanca Aprobada por el Administrador**
-  - *Chosen Approach*: Persistir un registro estructurado de solicitudes y cuentas autorizadas (`pending`, `approved`, `rejected`). Solo los correos con `status === 'approved'` (más la cuenta maestra `clientesbinweb@gmail.com`) pueden superar la barrera de bienvenida.
-  - *Why*: Cumple de forma absoluta con la regla de negocio: sin la respuesta afirmativa ("OK") del administrador, ningún visitante puede ingresar ni por formulario ni por ingreso autorizado.
+- **Decision 1: Enlace de Aprobación Auto-Contenido en el Correo de EmailJS**
+  - *Chosen Approach*: Incluir en el enlace de aprobación tanto el identificador de la solicitud como los metadatos codificados en la URL (`?admin_action=approve_request&email=...&name=...&company=...&role=...&sector=...&contact=...`).
+  - *Why*: Si el usuario envía la solicitud desde su propio navegador o dispositivo y el administrador abre el correo en su propio equipo o celular, el enlace auto-contenido permite que la aplicación en el navegador del administrador reconstruya y apruebe la solicitud de inmediato, además de disparar el correo de confirmación al usuario vía EmailJS.
+- **Decision 2: Verificación Automática del Cronograma Semanal + Disparo Manual**
+  - *Chosen Approach*: Persistir la configuración del programador semanal (`enabled`, `dayOfWeek`, `timeOfDay`, `lastSentAt`, `nextScheduledAt`) y verificar automáticamente cuando el administrador tiene abierta o inicia sesión en la consola si ya se cumplió la ventana semanal para disparar el resumen por EmailJS sin duplicados, complementado con el botón **"Enviar Resumen Ahora"**.
+  - *Why*: Garantiza que el reporte semanal funcione en una arquitectura SPA con EmailJS sin requerir servidores externos adicionales y permite al administrador disparar o probar el informe en cualquier instante.
 
 ---
 
 ## 4. Technical Architecture & Data Strategy *(Technical Reference)*
 
-### Architecture & Component Diagram
+- **Architecture & Component Diagram**:
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────┐
-│                        App.tsx (Estado Global B2B)                         │
-│  • hasInvitationAccess / isAdmin (Solo clientesbinweb@gmail.com)           │
-│  • accessRequests[] (status: 'pending' | 'approved' | 'rejected')          │
-│  • emailLogs[] (Historial de envíos EmailJS en tiempo real)                │
-└───────────────┬───────────────────────────────┬────────────────────────────┘
-                │                               │
-                ▼                               ▼
-┌───────────────────────────────────────┐ ┌──────────────────────────────────┐
-│       InvitationGateView.tsx          │ │   Servicio EmailJS Frontend      │
-│  1. Tab "Solicito Invitación":        │ │  • sendEmailNotification()       │
-│     Registra estado 'pending' +       │ │  • Plantillas para:              │
-│     Dispara EmailJS al Admin.         │ │    - Nueva Conexión B2B          │
-│  2. Tab "Ingreso Autorizado":         │ │    - Solicitud Reunión 1-a-1     │
-│     Verifica si email === ADMIN o     │ │    - Solicitud de Admisión       │
-│     si tiene OK ('approved') del      │ │    - Confirmación de OK Admin    │
-│     Admin. Si no, bloquea ingreso.    │ └─────────────────┬────────────────┘
-└───────────────────────────────────────┘                   │
-                                                            ▼
-                                          ┌──────────────────────────────────┐
-                                          │  AdminApprovalAndEmailModal.tsx  │
-                                          │  • Cola de Solicitudes de Acceso │
-                                          │  • Botón "Dar OK / Aprobar"      │
-                                          │  • Formulario Simple EmailJS &   │
-                                          │    Bandeja de Correos Enviados   │
-                                          └──────────────────────────────────┘
+│                    Primera Pantalla (Portada de Invitación)                 │
+│  • Genera Link de Aprobación (?admin_action=approve_request&email=...)     │
+│  • Envía correo vía EmailJS a clientesbinweb@gmail.com con Link incluido   │
+└───────────────────────────────────────┬────────────────────────────────────┘
+                                        │ Clic del Admin en el Link del Email
+                                        ▼
+┌────────────────────────────────────────────────────────────────────────────┐
+│                    Detector de Enlace de Aprobación (App)                  │
+│  • Valida parámetros URL de aprobación o rechazo directo                   │
+│  • Aprueba o actualiza la solicitud con estado 'approved'                  │
+│  • Dispara EmailJS de confirmación ('access_approved') al solicitante      │
+│  • Redirige al Dashboard Admin con notificación de aprobación exitosa      │
+└───────────────────────────────────────┬────────────────────────────────────┘
+                                        │
+                                        ▼
+┌────────────────────────────────────────────────────────────────────────────┐
+│             Dashboard de Administración (clientesbinweb@gmail.com)         │
+├───────────────────────┬──────────────────────────┬─────────────────────────┤
+│ Pestaña 1:            │ Pestaña 2:               │ Pestaña 3:              │
+│ Solicitudes Pendientes│ Historial de EmailJS     │ Métricas & Reporte      │
+│ • Aprobar / Rechazar  │ • Bitácora con           │ Semanal EmailJS         │
+│ • Pre-autorización    │   'weekly_report'        │ • Selector Día y Hora   │
+│ • Copiar Link de OK   │ • Botón Limpiar Log      │ • Toggle Auto-Envío     │
+│                       │ • Config VITE_EMAILJS_*  │ • Botón Enviar Ahora    │
+└───────────────────────┴──────────────────────────┴─────────────────────────┘
 ```
 
-### Data Model & State
-
-- **`AccessRequestItem`**:
-  - `id`, `fullName`, `companyName`, `email`, `corporateContact`, `role`, `sector`, `sectorsList`, `requestedAt`, `source` (`'form'` | `'authorized_attempt'`), `status` (`'pending'` | `'approved'` | `'rejected'`), `approvedAt?`, `approvedBy?`.
-- **`EmailNotificationPayload & Log`**:
-  - `id`, `type` (`'connection_invite'` | `'meeting_request'` | `'access_request'` | `'access_approved'`), `toEmail`, `ccAdmin` (`clientesbinweb@gmail.com`), `toName`, `fromName`, `companyName`, `subject`, `message`, `jitsiUrl?`, `sentAt`, `deliveryStatus` (`'sent_emailjs'` | `'queued_preview'`).
-
-### Interactive Component & State Mapping
-
-- **Formulario de Solicitud / Ingreso Autorizado**:
-  - Al enviar solicitud en la portada, se guarda en `accessRequests` con `status: 'pending'` y se invoca `sendB2BEmailNotification({ type: 'access_request', toEmail: 'clientesbinweb@gmail.com', ... })`.
-  - Al intentar ingresar por *Ingreso Autorizado*, se busca el correo en `accessRequests`:
-    - Si `status === 'approved'`, se concede el acceso (`onGrantAccess`).
-    - Si `status === 'pending'`, se muestra la alerta de que el ingreso aguarda el OK obligatorio de `clientesbinweb@gmail.com` con opción de enviar recordatorio por EmailJS.
-    - Si no existe, se permite registrarlo como solicitud de autorización pendiente para `clientesbinweb@gmail.com`.
-- **Modal de Conexión (`Speed-Pitch`) y Reuniones 1-a-1**:
-  - Incorpora el formulario simple de notificación por EmailJS prellenado con los datos de la empresa destino, permitiendo confirmar el correo destinatario (con copia a `clientesbinweb@gmail.com`) y enviando la alerta al pulsar *Solo Enviar Invitación* o *Enviar & Abrir Sala Jitsi 1-a-1*.
+- **Data Model & State**:
+  - **Extensión de `EmailNotificationType`**: Se añade `'weekly_report'` junto a `'connection_invite' | 'meeting_request' | 'access_request' | 'access_approved'`.
+  - **Parámetros adicionales en `EmailNotificationPayload`**: Se incorporan `approvalUrl?: string` y `rejectUrl?: string` que se inyectan tanto en `templateParams` (`approval_url`, `reject_url`, `action_url`) como de forma visible y clara al final de `message` para garantizar compatibilidad total con cualquier plantilla de EmailJS.
+  - **Configuración `WeeklyReportSchedule`**:
+    - `enabled: boolean`
+    - `dayOfWeek: number` (`0` Domingo a `6` Sábado, por defecto `1` Lunes)
+    - `hourMinute: string` (ej. `'09:00'`)
+    - `recipientEmail: string` (`clientesbinweb@gmail.com`)
+    - `lastSentAt: string | null`
+    - `lastAutoPeriodKey: string | null` (evita envíos duplicados en la misma ventana semanal)
+- **Interactive Component & State Mapping**:
+  - **Enlace de Aprobación en Portada (`InvitationGateView`)**: Construye la URL de aprobación con todos los datos del solicitante y la incluye en el envío de EmailJS tanto para el formulario de invitación como para intentos de *Ingreso Autorizado*.
+  - **Procesador de Aprobación por URL (`App`)**: Un efecto al iniciar la aplicación lee `window.location.search`; si detecta `admin_action=approve_request` (o `reject_request`), crea/actualiza la solicitud en estado `approved`, dispara el correo de bienvenida al usuario vía EmailJS, limpia la URL con `window.history.replaceState` y abre la vista `admin-dashboard` mostrando un banner y toast de confirmación.
+  - **Programador de Reporte Semanal (`AdminDashboardView` + `App`)**: Permite guardar el día/hora preferidos, calcula el próximo envío, ejecuta el chequeo automático cuando vence el ciclo semanal y ofrece previsualización y envío inmediato del resumen con las 4 métricas requeridas.

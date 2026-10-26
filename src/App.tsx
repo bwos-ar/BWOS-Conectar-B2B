@@ -21,6 +21,7 @@ import { NetworkingInsights } from './components/NetworkingInsights';
 import { VirtualCallRoom } from './components/VirtualCallRoom';
 import {
   ADMIN_EMAIL,
+  ADMIN_USERS,
   CompanyCard,
   DEFAULT_INCOMING_CALL,
   EXECUTIVE_AVATARS,
@@ -28,18 +29,26 @@ import {
   INITIAL_MEETINGS,
   IncomingCallData,
   MeetingItem,
+  SECONDARY_ADMIN_EMAIL,
   UserProfile,
+  isAdminEmail,
 } from './data/b2bData';
 import {
   AccessRequestItem,
   EmailLogItem,
   EmailNotificationPayload,
+  WeeklyReportSchedule,
+  buildWeeklyMetricsEmailPayload,
   findAccessRequestByEmail,
   getAccessRequests,
   getCompanyCorporateEmail,
   getSavedEmailLogs,
+  getWeeklyReportSchedule,
+  isApprovalTokenUsed,
+  markApprovalTokenUsed,
   saveAccessRequests,
   saveEmailLogs,
+  saveWeeklyReportSchedule,
   sendB2BEmailNotification,
   upsertAccessRequest,
 } from './services/emailjsService';
@@ -74,6 +83,11 @@ export default function App() {
     getSavedEmailLogs()
   );
 
+  // Weekly Summary Metrics Email Report Schedule State
+  const [weeklySchedule, setWeeklySchedule] = useState<WeeklyReportSchedule>(
+    () => getWeeklyReportSchedule()
+  );
+
   // Mandatory Invitation Gate State (Default false: requires Admin OK or Admin email)
   const [hasInvitationAccess, setHasInvitationAccess] = useState<boolean>(
     () => {
@@ -86,7 +100,7 @@ export default function App() {
           .trim()
           .toLowerCase();
         if (!granted || !storedEmail) return false;
-        if (storedEmail === ADMIN_EMAIL.toLowerCase()) return true;
+        if (isAdminEmail(storedEmail)) return true;
         const req = findAccessRequestByEmail(storedEmail);
         return Boolean(req && req.status === 'approved');
       } catch {
@@ -95,13 +109,21 @@ export default function App() {
     }
   );
 
-  // Admin Session State (Only true for clientesbinweb@gmail.com)
+  // Active Session Email State
+  const [sessionEmail, setSessionEmail] = useState<string>(() => {
+    try {
+      return (localStorage.getItem(STORAGE_KEYS.ADMIN_EMAIL) || '')
+        .trim()
+        .toLowerCase();
+    } catch {
+      return '';
+    }
+  });
+
+  // Admin Session State (True for clientesbinweb@gmail.com and somosbwos@gmail.com)
   const [isAdmin, setIsAdmin] = useState<boolean>(() => {
     try {
-      return (
-        localStorage.getItem(STORAGE_KEYS.ADMIN_EMAIL)?.toLowerCase() ===
-        ADMIN_EMAIL.toLowerCase()
-      );
+      return isAdminEmail(localStorage.getItem(STORAGE_KEYS.ADMIN_EMAIL));
     } catch {
       return false;
     }
@@ -773,37 +795,37 @@ export default function App() {
   };
 
   const handleGrantInvitationAccess = (reqData: InvitationRequestData) => {
-    const adminGranted =
-      reqData.email.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase();
+    const cleanReqEmail = reqData.email.trim().toLowerCase();
+    const adminGranted = isAdminEmail(cleanReqEmail);
     try {
       localStorage.setItem(STORAGE_KEYS.INVITATION_GRANTED, 'true');
-      localStorage.setItem(
-        STORAGE_KEYS.ADMIN_EMAIL,
-        reqData.email.trim().toLowerCase()
-      );
+      localStorage.setItem(STORAGE_KEYS.ADMIN_EMAIL, cleanReqEmail);
     } catch {
       // ignore storage errors
     }
+    setSessionEmail(cleanReqEmail);
     setIsAdmin(adminGranted);
-    if (!userProfile) {
-      setUserProfile({
-        fullName: reqData.fullName,
-        companyName: reqData.companyName,
-        countryCode: '+52',
-        phone: reqData.corporateContact,
-        offering:
-          'Soluciones e infraestructura corporativa validada para rueda de negocios B2B.',
-        demand:
-          'Alianzas comerciales y proveedores homologados en Latinoamérica.',
-        accreditedAt: reqData.requestedAt,
-      });
-    }
+    setUserProfile({
+      fullName: reqData.fullName,
+      companyName: reqData.companyName,
+      countryCode: '+52',
+      phone: reqData.corporateContact,
+      offering:
+        'Soluciones e infraestructura corporativa validada para rueda de negocios B2B.',
+      demand:
+        'Alianzas comerciales y proveedores homologados en Latinoamérica.',
+      accreditedAt: reqData.requestedAt,
+      role: reqData.role,
+    });
     setHasInvitationAccess(true);
+    if (adminGranted) {
+      setActiveView('admin-dashboard');
+    }
     showToast(
       adminGranted
-        ? '¡Sesión de Administrador Activada!'
+        ? '¡Dashboard de Administración Activado!'
         : '¡Invitación Validada!',
-      `Bienvenido ${reqData.fullName} (${reqData.email}).`
+      `Bienvenido ${reqData.fullName} · ${reqData.companyName} (${cleanReqEmail}).`
     );
   };
 
@@ -852,12 +874,18 @@ export default function App() {
   };
 
   const handleApproveAccessRequest = async (req: AccessRequestItem) => {
+    const nowIso = new Date().toISOString();
+    if (req.oneTimeToken) {
+      markApprovalTokenUsed(req.oneTimeToken);
+    }
     const updatedList = accessRequests.map((item) =>
       item.id === req.id
         ? {
             ...item,
             status: 'approved' as const,
-            reviewedAt: new Date().toISOString(),
+            tokenUsed: true,
+            tokenUsedAt: nowIso,
+            reviewedAt: nowIso,
             reviewedBy: ADMIN_EMAIL,
           }
         : item
@@ -885,12 +913,18 @@ export default function App() {
   };
 
   const handleRejectAccessRequest = (req: AccessRequestItem) => {
+    const nowIso = new Date().toISOString();
+    if (req.oneTimeToken) {
+      markApprovalTokenUsed(req.oneTimeToken);
+    }
     const updatedList = accessRequests.map((item) =>
       item.id === req.id
         ? {
             ...item,
             status: 'rejected' as const,
-            reviewedAt: new Date().toISOString(),
+            tokenUsed: true,
+            tokenUsedAt: nowIso,
+            reviewedAt: nowIso,
             reviewedBy: ADMIN_EMAIL,
           }
         : item
@@ -920,6 +954,8 @@ export default function App() {
       sectorsList: [data.sector],
       source: 'admin_manual',
       status: 'approved',
+      tokenUsed: true,
+      tokenUsedAt: new Date().toISOString(),
     });
     setAccessRequests(getAccessRequests());
 
@@ -966,6 +1002,202 @@ export default function App() {
       'Se vació la bandeja de registros de correo.'
     );
   };
+
+  const handleUpdateWeeklySchedule = (nextSchedule: WeeklyReportSchedule) => {
+    saveWeeklyReportSchedule(nextSchedule);
+    setWeeklySchedule(nextSchedule);
+  };
+
+  const handleSendWeeklyReportNow = async () => {
+    const payload = buildWeeklyMetricsEmailPayload({
+      companies,
+      meetings,
+      accessRequests,
+      emailLogs,
+      schedule: weeklySchedule,
+    });
+    await sendB2BEmailNotification(payload);
+    const updatedSchedule: WeeklyReportSchedule = {
+      ...weeklySchedule,
+      lastSentAt: new Date().toISOString(),
+    };
+    saveWeeklyReportSchedule(updatedSchedule);
+    setWeeklySchedule(updatedSchedule);
+    setEmailLogs(getSavedEmailLogs());
+    showToast(
+      '¡Reporte Semanal de Métricas Enviado!',
+      `Resumen despachado vía EmailJS a ${ADMIN_EMAIL}.`
+    );
+  };
+
+  // Automatic Weekly Report Dispatcher (checks when scheduled day/hour arrives for current week)
+  useEffect(() => {
+    if (!isAdmin || !weeklySchedule.enabled) return;
+
+    const now = new Date();
+    const currentDay = now.getDay();
+    if (currentDay !== weeklySchedule.dayOfWeek) return;
+
+    const [schedH, schedM] = (weeklySchedule.hourMinute || '09:00')
+      .split(':')
+      .map((n) => Number(n) || 0);
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    const targetMinutes = schedH * 60 + schedM;
+
+    if (currentMinutes < targetMinutes) return;
+
+    // Weekly cycle key (YYYY-MM-DD of the scheduled day) to prevent duplicate sends in the same week
+    const cycleKey = `${now.getFullYear()}-${String(
+      now.getMonth() + 1
+    ).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    if (weeklySchedule.lastAutoCycleKey === cycleKey) return;
+
+    const payload = buildWeeklyMetricsEmailPayload({
+      companies,
+      meetings,
+      accessRequests,
+      emailLogs,
+      schedule: weeklySchedule,
+    });
+
+    sendB2BEmailNotification(payload).then(() => {
+      const updatedSchedule: WeeklyReportSchedule = {
+        ...weeklySchedule,
+        lastSentAt: new Date().toISOString(),
+        lastAutoCycleKey: cycleKey,
+      };
+      saveWeeklyReportSchedule(updatedSchedule);
+      setWeeklySchedule(updatedSchedule);
+      setEmailLogs(getSavedEmailLogs());
+      showToast(
+        'Reporte Semanal Automático Enviado',
+        `Resumen programado enviado por EmailJS a ${ADMIN_EMAIL}.`
+      );
+    });
+  }, [
+    isAdmin,
+    weeklySchedule,
+    companies,
+    meetings,
+    accessRequests,
+    emailLogs,
+  ]);
+
+  // Process Single-Use Admin Approval Link ({{Aceptar a quien solicitó invitación}}) from Email URL
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const adminAction = params.get('admin_action');
+    if (!adminAction) return;
+
+    const targetEmail = (params.get('email') || '').trim().toLowerCase();
+    const token = params.get('token') || '';
+    const applicantName = params.get('name') || 'Ejecutivo B2B';
+    const applicantCompany = params.get('company') || 'Empresa Invitada B2B';
+    const applicantContact = params.get('contact') || targetEmail;
+    const applicantRole = params.get('role') || 'Directivo B2B';
+    const applicantSector = params.get('sector') || 'SaaS & Tecnología';
+
+    // Clean URL immediately so refreshing doesn't re-trigger
+    window.history.replaceState({}, document.title, window.location.pathname);
+
+    // Activate Administrator Session (clientesbinweb@gmail.com)
+    try {
+      localStorage.setItem(STORAGE_KEYS.INVITATION_GRANTED, 'true');
+      localStorage.setItem(STORAGE_KEYS.ADMIN_EMAIL, ADMIN_EMAIL.toLowerCase());
+    } catch {
+      // ignore storage errors
+    }
+    setIsAdmin(true);
+    setHasInvitationAccess(true);
+    setActiveView('admin-dashboard');
+
+    if (adminAction === 'open_dashboard') {
+      showToast(
+        'Dashboard de Administración Abierto',
+        `Sesión activa como ${ADMIN_EMAIL}.`
+      );
+      return;
+    }
+
+    if (!targetEmail || !targetEmail.includes('@')) return;
+
+    // Enforce Single-Use Token Rule (Link de Único Uso)
+    if (token && isApprovalTokenUsed(token)) {
+      showToast(
+        'Enlace de único uso ya utilizado',
+        `El link de aprobación para ${targetEmail} ya fue consumido anteriormente.`
+      );
+      return;
+    }
+
+    const nowIso = new Date().toISOString();
+    if (token) {
+      markApprovalTokenUsed(token);
+    }
+
+    if (adminAction === 'approve_request') {
+      const approvedItem = upsertAccessRequest({
+        email: targetEmail,
+        fullName: applicantName,
+        companyName: applicantCompany,
+        corporateContact: applicantContact,
+        role: applicantRole,
+        sector: applicantSector,
+        sectorsList: applicantSector.split(' · ').filter(Boolean),
+        source: 'invitation_form',
+        status: 'approved',
+        oneTimeToken: token || undefined,
+        tokenUsed: true,
+        tokenUsedAt: nowIso,
+        reviewedAt: nowIso,
+        reviewedBy: ADMIN_EMAIL,
+      });
+
+      setAccessRequests(getAccessRequests());
+
+      sendB2BEmailNotification({
+        type: 'access_approved',
+        toEmail: approvedItem.email,
+        toName: approvedItem.fullName,
+        fromName: 'Administrador General BWOS',
+        fromEmail: ADMIN_EMAIL,
+        companyName: approvedItem.companyName,
+        subject: `[OK DEL ADMINISTRADOR OTORGADO] Acceso Habilitado a BWOS Conectar B2B`,
+        message: `Hola ${approvedItem.fullName} (${approvedItem.companyName}), el administrador (${ADMIN_EMAIL}) ha aceptado tu solicitud de invitación. Ya puedes ingresar a BWOS Conectar B2B utilizando tu correo ${approvedItem.email} en la pestaña "Ingreso Autorizado".`,
+        ccAdminEmail: ADMIN_EMAIL,
+      }).then(() => {
+        setEmailLogs(getSavedEmailLogs());
+      });
+
+      showToast(
+        `¡Invitación Aceptada con Link de Único Uso!`,
+        `Se otorgó el OK a ${approvedItem.fullName} (${approvedItem.email}) y se notificó por EmailJS.`
+      );
+    } else if (adminAction === 'reject_request') {
+      upsertAccessRequest({
+        email: targetEmail,
+        fullName: applicantName,
+        companyName: applicantCompany,
+        corporateContact: applicantContact,
+        role: applicantRole,
+        sector: applicantSector,
+        sectorsList: [applicantSector],
+        source: 'invitation_form',
+        status: 'rejected',
+        oneTimeToken: token || undefined,
+        tokenUsed: true,
+        tokenUsedAt: nowIso,
+        reviewedAt: nowIso,
+        reviewedBy: ADMIN_EMAIL,
+      });
+      setAccessRequests(getAccessRequests());
+      showToast(
+        `Solicitud Rechazada por Enlace de Único Uso`,
+        `El acceso para ${targetEmail} fue denegado.`
+      );
+    }
+  }, []);
 
   const pendingAccessCount = useMemo(
     () => accessRequests.filter((r) => r.status === 'pending').length,
@@ -1273,20 +1505,35 @@ export default function App() {
 
       {/* Main Content Area */}
       <main className="flex-1 w-full">
-        {/* VIEW 0: DASHBOARD DE ADMINISTRACIÓN EXCLUSIVO (clientesbinweb@gmail.com) */}
+        {/* VIEW 0: DASHBOARD DE ADMINISTRACIÓN EXCLUSIVO (clientesbinweb@gmail.com / somosbwos@gmail.com) */}
         {activeView === 'admin-dashboard' && (
           <AdminDashboardView
             isAdmin={isAdmin}
+            adminUser={{
+              fullName:
+                userProfile?.fullName ||
+                ADMIN_USERS[sessionEmail]?.fullName ||
+                'Asesor Digital BWOS',
+              companyName:
+                userProfile?.companyName ||
+                ADMIN_USERS[sessionEmail]?.companyName ||
+                'BWOS | Sitios Web & Merch',
+              email: sessionEmail || SECONDARY_ADMIN_EMAIL,
+            }}
             companies={companies}
             meetings={meetings}
             accessRequests={accessRequests}
             emailLogs={emailLogs}
+            weeklySchedule={weeklySchedule}
+            onUpdateWeeklySchedule={handleUpdateWeeklySchedule}
+            onSendWeeklyReportNow={handleSendWeeklyReportNow}
             onApproveRequest={handleApproveAccessRequest}
             onRejectRequest={handleRejectAccessRequest}
             onDeleteRequest={handleDeleteAccessRequest}
             onManualAuthorizeEmail={handleManualAuthorizeEmail}
             onSendManualEmail={handleSendManualEmail}
             onClearEmailLogs={handleClearEmailLogs}
+            onRefreshRequests={handleRefreshAccessRequests}
             onTriggerIncomingCall={() => handleTriggerIncomingCall()}
             onOpenPublishModal={() => setIsPublishModalOpen(true)}
             onResetDemoData={handleResetDemoData}

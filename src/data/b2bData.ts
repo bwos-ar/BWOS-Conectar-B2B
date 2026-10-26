@@ -1145,6 +1145,40 @@ export const INITIAL_COMPANIES: CompanyCard[] = [
 ];
 
 export const ADMIN_EMAIL = 'clientesbinweb@gmail.com';
+export const SECONDARY_ADMIN_EMAIL = 'somosbwos@gmail.com';
+
+export const ADMIN_EMAILS = [
+  ADMIN_EMAIL,
+  SECONDARY_ADMIN_EMAIL,
+] as const;
+
+export interface AdminUserAccount {
+  fullName: string;
+  companyName: string;
+  email: string;
+  role: string;
+}
+
+export const ADMIN_USERS: Record<string, AdminUserAccount> = {
+  'clientesbinweb@gmail.com': {
+    fullName: 'Administrador General BWOS',
+    companyName: 'Dirección General BWOS',
+    email: 'clientesbinweb@gmail.com',
+    role: 'Administrador General',
+  },
+  'somosbwos@gmail.com': {
+    fullName: 'Asesor Digital BWOS',
+    companyName: 'BWOS | Sitios Web & Merch',
+    email: 'somosbwos@gmail.com',
+    role: 'Administrador de Admisiones B2B',
+  },
+};
+
+export function isAdminEmail(email?: string | null): boolean {
+  if (!email) return false;
+  const clean = email.trim().toLowerCase();
+  return ADMIN_EMAILS.some((admin) => admin.toLowerCase() === clean);
+}
 
 export const INITIAL_MEETINGS: MeetingItem[] = [
   {

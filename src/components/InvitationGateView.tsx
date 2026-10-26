@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { ADMIN_EMAIL, SUMMIT_HERO_IMAGE } from '../data/b2bData';
+import { InstitutionalFooter } from './InstitutionalFooter';
 import { InlineLegalRedBanner } from './LegalRedNoticeModal';
+import { MultiSectorSelector } from './MultiSectorSelector';
 import { MvpDevelopmentBanner } from './MvpDevelopmentBanner';
 
 export interface InvitationRequestData {
@@ -10,6 +12,7 @@ export interface InvitationRequestData {
   corporateContact: string;
   role: string;
   sector: string;
+  sectorsList?: string[];
   requestedAt: string;
   isAdmin: boolean;
 }
@@ -31,7 +34,9 @@ export const InvitationGateView: React.FC<InvitationGateViewProps> = ({
   const [email, setEmail] = useState('');
   const [corporateContact, setCorporateContact] = useState('');
   const [role, setRole] = useState('');
-  const [sector, setSector] = useState('SaaS & Tecnología');
+  const [selectedSectors, setSelectedSectors] = useState<string[]>([
+    'SaaS & Tecnología',
+  ]);
   const [authorizedEmail, setAuthorizedEmail] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [requestSubmitted, setRequestSubmitted] = useState(false);
@@ -50,7 +55,12 @@ export const InvitationGateView: React.FC<InvitationGateViewProps> = ({
       return;
     }
 
-    // If administrator email is entered, grant immediate admin access even if other fields are optional
+    const combinedSectorLabel =
+      selectedSectors.length > 0
+        ? selectedSectors.join(' · ')
+        : 'SaaS & Tecnología';
+
+    // If administrator email is entered, grant immediate admin access
     if (cleanEmail === ADMIN_EMAIL.toLowerCase()) {
       onGrantAccess({
         fullName: fullName.trim() || 'Administrador BWOS',
@@ -58,7 +68,8 @@ export const InvitationGateView: React.FC<InvitationGateViewProps> = ({
         email: cleanEmail,
         corporateContact: corporateContact.trim() || cleanEmail,
         role: role.trim() || 'Administrador General',
-        sector,
+        sector: combinedSectorLabel,
+        sectorsList: selectedSectors,
         requestedAt: new Date().toISOString(),
         isAdmin: true,
       });
@@ -68,6 +79,13 @@ export const InvitationGateView: React.FC<InvitationGateViewProps> = ({
     if (!fullName.trim() || !companyName.trim() || !corporateContact.trim()) {
       setErrorMsg(
         'Por favor completa tu Nombre, Empresa, Correo Corporativo y WhatsApp para enviar tu solicitud de invitación.'
+      );
+      return;
+    }
+
+    if (selectedSectors.length === 0) {
+      setErrorMsg(
+        'Por favor selecciona al menos 1 sector industrial de interés (máximo 2).'
       );
       return;
     }
@@ -83,7 +101,8 @@ export const InvitationGateView: React.FC<InvitationGateViewProps> = ({
         email: cleanEmail,
         corporateContact: corporateContact.trim(),
         role: role.trim(),
-        sector,
+        sector: combinedSectorLabel,
+        sectorsList: selectedSectors,
         requestedAt: new Date().toISOString(),
       });
       localStorage.setItem(
@@ -121,6 +140,7 @@ export const InvitationGateView: React.FC<InvitationGateViewProps> = ({
       corporateContact: cleanAuth,
       role: 'Administrador General',
       sector: 'SaaS & Tecnología',
+      sectorsList: ['SaaS & Tecnología'],
       requestedAt: new Date().toISOString(),
       isAdmin: true,
     });
@@ -128,7 +148,7 @@ export const InvitationGateView: React.FC<InvitationGateViewProps> = ({
 
   return (
     <div className="min-h-screen w-full bg-surface text-on-surface font-body-md flex flex-col justify-between">
-      {/* Top Persistent MVP Notice (Admin-only reset hidden when locked) */}
+      {/* Top Persistent MVP Notice */}
       <MvpDevelopmentBanner
         isAdmin={false}
         onOpenLegalNotice={onOpenLegalNotice}
@@ -187,7 +207,7 @@ export const InvitationGateView: React.FC<InvitationGateViewProps> = ({
 
       {/* Main Centered Gate Content */}
       <main className="flex-1 w-full max-w-[1320px] mx-auto px-4 sm:px-8 py-8 md:py-12 flex items-center">
-        <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+        <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Left Column: Institutional Value & Confidentiality Notice */}
           <div className="lg:col-span-5 flex flex-col gap-5">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary-fixed text-primary font-label-md font-bold self-start">
@@ -272,7 +292,7 @@ export const InvitationGateView: React.FC<InvitationGateViewProps> = ({
           </div>
 
           {/* Right Column: "Quiero ingresar, solicito invitación" Form Card */}
-          <div className="lg:col-span-7 bg-surface-container-lowest rounded-2xl border border-surface-container-high shadow-xl p-6 sm:p-8 flex flex-col gap-6">
+          <div className="lg:col-span-7 bg-surface-container-lowest rounded-2xl border border-surface-container-high shadow-xl p-6 sm:p-8 flex flex-col gap-5">
             {/* Mode Switcher */}
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-surface-container pb-4">
               <div className="flex flex-wrap items-center gap-2 bg-surface-container-low p-1 rounded-xl">
@@ -343,8 +363,10 @@ export const InvitationGateView: React.FC<InvitationGateViewProps> = ({
                     </h2>
                     <p className="font-body-md text-on-surface-variant mt-1">
                       Hemos registrado la solicitud de admisión para{' '}
-                      <strong>{companyName}</strong> ({email}). Nuestro equipo
-                      validará los antecedentes corporativos y enviará tu
+                      <strong>{companyName}</strong> ({email}) en el/los
+                      sector(es):{' '}
+                      <strong>{selectedSectors.join(', ')}</strong>. Nuestro
+                      equipo validará los antecedentes corporativos y enviará tu
                       habilitación de acceso al correo registrado.
                     </p>
                   </div>
@@ -450,52 +472,29 @@ export const InvitationGateView: React.FC<InvitationGateViewProps> = ({
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="flex flex-col gap-1.5">
-                      <label
-                        htmlFor="inv-role"
-                        className="font-label-md text-on-surface font-bold"
-                      >
-                        Cargo Directivo
-                      </label>
-                      <input
-                        id="inv-role"
-                        type="text"
-                        value={role}
-                        onChange={(e) => setRole(e.target.value)}
-                        placeholder="Ej. CEO / Director de Compras"
-                        className="w-full px-3.5 py-3 rounded-xl bg-surface border border-outline-variant font-body-md text-on-surface focus:outline-none focus:border-primary"
-                      />
-                    </div>
-
-                    <div className="flex flex-col gap-1.5">
-                      <label
-                        htmlFor="inv-sector"
-                        className="font-label-md text-on-surface font-bold"
-                      >
-                        Sector Industrial de Interés
-                      </label>
-                      <select
-                        id="inv-sector"
-                        value={sector}
-                        onChange={(e) => setSector(e.target.value)}
-                        className="w-full px-3.5 py-3 rounded-xl bg-surface border border-outline-variant font-body-md text-on-surface focus:outline-none focus:border-primary"
-                      >
-                        <option value="SaaS & Tecnología">
-                          SaaS & Tecnología
-                        </option>
-                        <option value="Logística & Fintech">
-                          Logística & Fintech
-                        </option>
-                        <option value="Manufactura & Industria 4.0">
-                          Manufactura & Industria 4.0
-                        </option>
-                        <option value="Servicios Corporativos">
-                          Servicios Corporativos
-                        </option>
-                      </select>
-                    </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label
+                      htmlFor="inv-role"
+                      className="font-label-md text-on-surface font-bold"
+                    >
+                      Cargo Directivo
+                    </label>
+                    <input
+                      id="inv-role"
+                      type="text"
+                      value={role}
+                      onChange={(e) => setRole(e.target.value)}
+                      placeholder="Ej. CEO / Director de Compras"
+                      className="w-full px-3.5 py-3 rounded-xl bg-surface border border-outline-variant font-body-md text-on-surface focus:outline-none focus:border-primary"
+                    />
                   </div>
+
+                  {/* Multi-Sector Selector (Up to 2 sectors + "Otro" with 20-char limit & comma support) */}
+                  <MultiSectorSelector
+                    selectedSectors={selectedSectors}
+                    onChange={(sectors) => setSelectedSectors(sectors)}
+                    label="Sector Industrial de Interés (Selecciona hasta 2)"
+                  />
 
                   {isEnteredAdmin && (
                     <div className="p-3 rounded-xl bg-secondary/10 border border-secondary/30 text-secondary font-body-sm flex items-center gap-2">
@@ -570,25 +569,17 @@ export const InvitationGateView: React.FC<InvitationGateViewProps> = ({
         </div>
       </main>
 
-      {/* Minimal Footer */}
-      <footer className="w-full bg-surface-container-low border-t border-surface-container-high py-4 px-4 sm:px-8">
-        <div className="max-w-[1440px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-center sm:text-left">
-          <span className="font-body-sm text-on-surface-variant">
-            © 2025 BWOS Conectar B2B · Acceso exclusivo bajo invitación verificada.
-          </span>
-          <button
-            type="button"
-            onClick={() =>
-              onOpenLegalNotice(
-                'Términos de Admisión y Confidencialidad de Directorio B2B'
-              )
-            }
-            className="font-label-sm text-[#ba1a1a] hover:underline font-bold cursor-pointer"
-          >
-            Aviso Legal en Rojo [PENDIENTE DE CONSULTA CON ABOGADOS]
-          </button>
-        </div>
-      </footer>
+      {/* Dark 4-Column Institutional Footer (Image 2) */}
+      <InstitutionalFooter
+        hasAccess={false}
+        onOpenLegalNotice={onOpenLegalNotice}
+        onProtectedLinkClick={() => {
+          setErrorMsg(
+            'El acceso al Directorio BW2, Conexiones, Agenda y Salas Virtuales requiere invitación aprobada. Solicita tu invitación en el formulario.'
+          );
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+      />
     </div>
   );
 };

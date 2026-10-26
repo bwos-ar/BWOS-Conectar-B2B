@@ -1,116 +1,88 @@
-# BWOS Conectar B2B — Plataforma Oficial de Acreditación y Rondas de Negocios
+# BWOS Conectar B2B — Selector Multisectorial, Nuevo Pie de Página Institucional y Optimización del Paginador
 
-Plataforma web B2B interactiva y adaptable (mobile-first y escritorio de alta densidad) que unifica la acreditación empresarial en tiempo real, el directorio de emparejamiento comercial (Ofertas y Demandas), la gestión de conexiones y agendas 1-a-1, y salas de videollamada integradas con **Jitsi Meet** gratuito.
+Esta actualización incorpora un selector ampliado de sectores industriales (con selección de hasta 2 sectores y opción personalizada "Otro" separada por comas con límite de 20 caracteres por sector), rediseña el pie de página institucional con la estética oscura de 4 columnas en todas las vistas, y optimiza la paginación del directorio para garantizar actualizaciones determinísticas y desplazamiento suave.
 
-### User Review & Critical Decisions
+## User Review & Critical Decisions
 
 > [!IMPORTANT]
-> Se han consolidado todas las respuestas y requerimientos adicionales para construir primero el MVP funcional completo:
+> Se han integrado las decisiones confirmadas para garantizar consistencia funcional y visual en toda la plataforma:
 
-- **Flujo Unificado + Selector de Vistas**: La aplicación conectará de forma natural el flujo desde **Acreditación Empresarial** hacia el **Lobby Virtual B2B** (con sus variantes de Directorio de Tarjetas e Interoperabilidad BW2), **Mis Conexiones**, **Agenda B2B** y **Sala Virtual 1-a-1**, incorporando además una barra de acceso rápido para saltar o previsualizar cualquiera de las pantallas o activar simulaciones como la videollamada entrante.
-- **Videollamadas B2B Gratuitas con Jitsi Meet**: Al aceptar una videollamada entrante (*"Alguien quiere conectar con vos"*) o iniciar una sala 1-a-1 desde una conexión o agenda, se abrirá una sala en vivo embebida mediante **Jitsi Meet (`meet.jit.si`)** sin costo ni requerimiento de licencias externas, acompañada de la ficha de sincronización comercial de la contraparte.
-- **Secciones Legales y Normativas en Blanco con Aviso en Rojo**: Todo texto, modal o bloque relacionado con consulta de abogados, términos legales, privacidad y tratamiento de datos B2B o validaciones notariales/compliance se dejará en blanco con un **aviso destacado en rojo** (*"PENDIENTE DE REVISIÓN LEGAL — ESPACIO RESERVADO PARA CONSULTA CON ABOGADOS"*) para su revisión final posterior al MVP.
-- **Persistencia en el Navegador con Reinicio Rápido**: Los datos de acreditación del directivo, las nuevas ofertas/demandas publicadas, las empresas guardadas y las solicitudes de conexión/citas se guardarán automáticamente en `localStorage`, incluyendo un botón de reinicio de datos de demostración.
-
----
-
-### 1. Overview & Core Concept
-
-- **What It Does**: Permite a directivos y tomadores de decisión acreditarse con su matriz comercial (*Qué ofrezco* y *Qué demando*), explorar contrapartes validadas con puntajes de afinidad (*Match Score*), filtrar por sector o búsqueda instantánea, enviar propuestas de Speed-Pitch, gestionar su agenda de rondas 1-a-1 y conectarse en videollamadas en vivo vía Jitsi Meet.
-- **Target Audience / Persona**: Directivos corporativos, gerentes de compras, fundadores SaaS/Tech, operadores logísticos e industriales participando en ruedas de negocios B2B en Latinoamérica y España.
-- **Key Value**: Elimina la fricción comercial priorizando oportunidades concretas de oferta y demanda, contacto directo por WhatsApp corporativo y salas de negociación inmediata en un entorno limpio y accesible.
+- **Alcance del Nuevo Selector de Sectores (Hasta 2 + "Otro")**: Se aplicará tanto en el formulario inicial **“Quiero ingresar, solicito invitación”**, como en el modal de **“Publicar Oferta / Demanda”** y en los **Filtros del Lobby**.
+- **Regla de "Otro" con Comas y Límite de Caracteres**: Al activar "Otro", el usuario puede escribir un sector corto (máximo 20 caracteres por sector). Si escribe dos sectores separados por coma (ej. `Minería, Textil`), el sistema los interpreta automáticamente como 2 sectores independientes (máximo 20 caracteres cada uno) y valida que la suma total de sectores seleccionados (predefinidos + personalizados) nunca supere el máximo de **2 sectores**.
+- **Pie de Página Institucional Oscuro (4 Columnas)**: Se mostrará en **todas las vistas**, incluyendo la pantalla inicial de solicitud de invitación. Cuando el visitante aún no ha ingresado a la plataforma, los enlaces de navegación de la columna *PLATAFORMA* mostrarán un aviso indicando que requieren invitación activa, mientras que los enlaces de *LEGAL* y *CONTACTO Y SOPORTE* estarán plenamente operativos.
 
 ---
 
-### 2. User Experience & Visual Design
+## 1. Overview & Core Concept
+
+- **What It Does**:
+  1. **Selector Multisectorial B2B (Hasta 2 Sectores + "Otro")**: Amplía el catálogo de sectores industriales a 10 rubros corporativos más la opción **“Otro (Especificar)”**, permitiendo elegir hasta 2 sectores combinados o separados por coma.
+  2. **Pie de Página Oscuro de 4 Columnas (`BW2 · BWOS CONECTAR B2B`)**: Reemplaza el pie de página anterior por el diseño institucional oscuro (`#161f30`) con las 4 columnas exactas (*Identidad BW2*, *Plataforma*, *Legal* con etiquetas `borrador`/`pendiente` en rojo suave, y *Contacto y Soporte* con modal para *Denunciar una conducta*).
+  3. **Paginador del Directorio Optimizado**: Sincroniza el estado `currentPage` / `safeCurrentPage` con el corte exacto de `paginatedCompanies`, añade claves de renderizado por página en el contenedor de la cuadrícula y ejecuta `scrollIntoView` de forma sincronizada tras el cambio de página.
+- **Target Audience / Persona**: Ejecutivos B2B solicitando admisión, empresas publicando ofertas/demandas en múltiples giros industriales y el administrador (`clientesbinweb@gmail.com`).
+- **Key Value**: Mayor precisión en la clasificación industrial de las empresas, cumplimiento visual exacto con el pie de página institucional y navegación fluida entre las páginas del catálogo.
+
+---
+
+## 2. User Experience & Visual Design
 
 - **Key User Flows**:
-  1. **Acreditación Empresarial (Ingreso al Evento)**: Formulario paso 1 de 1 con validación en tiempo real (Nombre completo, Empresa, WhatsApp Empresarial con selector de código de país, y Matriz de Intercambio Comercial *Qué ofrezco* / *Qué demando* con contador de 0/300 caracteres y mínimo de 20 caracteres). Al enviar, sincroniza la credencial del usuario y redirige al Lobby Virtual.
-  2. **Lobby Virtual B2B & Directorio de Interoperabilidad (BW2)**:
-     - Buscador instantáneo por empresa, representante, insumo, oferta o demanda con botón para limpiar o restablecer filtros.
-     - Filtros interactivos por sector (*Todos*, *SaaS & Tech / Tecnología*, *Logística & Fintech*, *Manufactura & Industria 4.0*, *Servicios Corporativos*, *Solo Match Inmediato*) y ordenamiento por porcentaje de Match o tiempo de respuesta.
-     - Tarjetas empresariales estructuradas con imágenes y avatares originales de las pantallas proporcionadas, bloques diferenciados de **OFRECE** (verde esmeralda suave `#ECFDF5`) y **DEMANDA / BUSCA** (azul/pizarra `#F2F3FF`), e indicadores de afinidad.
-     - Modal para **Publicar Oferta / Demanda** que agrega una nueva tarjeta al directorio en vivo, y modal de **Filtros Avanzados B2B**.
-  3. **Vínculo Inmediato (Speed-Pitch Modal) y Videollamada B2B Entrante**:
-     - Al pulsar *Conectar* en cualquier empresa, se abre el modal de *Iniciar Vínculo Inmediato* con mensaje de apertura personalizado y opción de enviar invitación o abrir directamente la Sala 1-a-1.
-     - Modal superpuesto de **Videollamada B2B Entrante** (*"Alguien quiere conectar con vos" — Carlos Mendonça, CEO de InnovaTech B2B, 96% Match*) con opciones funcionales para **Aceptar y unirse** (abre la sala Jitsi Meet), **Rechazar**, o **Posponer 15 min y enviar mensaje predeterminado** (agenda automáticamente el encuentro en la pestaña Agenda B2B).
-  4. **Sala Virtual 1-a-1 (Jitsi Meet) + Mis Conexiones + Agenda B2B**:
-     - **Sala Virtual**: Interfaz de videoconferencia en tiempo real impulsada por el iframe/API gratuita de `meet.jit.si`, con panel lateral que muestra la oferta/demanda de la contraparte, notas rápidas del acuerdo y enlace directo a WhatsApp.
-     - **Mis Conexiones**: Lista de contrapartes conectadas y guardadas con acceso directo a chat/WhatsApp o inicio de videollamada.
-     - **Agenda B2B**: Cronograma de mesas de negociación 1-a-1 confirmadas y pospuestas.
-  5. **Placeholders Legales en Rojo**: Todos los enlaces y bloques de *Privacidad y Tratamiento B2B*, *Términos del Encuentro* y *Validación Legal / Notarial* muestran un contenedor vacío con borde y aviso en rojo indicando que el contenido está reservado para la consulta con abogados.
-
+  1. **Selección de hasta 2 Sectores + "Otro"**:
+     - El usuario visualiza el catálogo ampliado de sectores (*SaaS & Tecnología*, *Logística & Fintech*, *Manufactura & Industria 4.0*, *Servicios Corporativos*, *Agroindustria & Alimentos*, *Energía & Sostenibilidad*, *Salud & Farma*, *Construcción & Infraestructura*, *Comercio Exterior & Retail*, *Minería & Metalurgia*, y *Otro*).
+     - Puede marcar hasta 2 sectores de la lista, o marcar 1 sector + *Otro* (1 sector corto de hasta 20 caracteres), o marcar únicamente *Otro* e ingresar hasta 2 sectores cortos separados por coma (ej. `Textil, Plásticos`, máx. 20 caracteres cada uno).
+     - Se muestran píldoras interactivas en vivo con el conteo `Sectores seleccionados: X / 2`.
+  2. **Pie de Página Institucional (4 Columnas Oscuras)**:
+     - **Columna 1**: Ícono cuadrado azul claro `BW2` + `BWOS CONECTAR B2B`, texto *"Directorio y rondas de negocios B2B con videollamadas 1 a 1. Solo para empresas invitadas a la ronda."* y nota *"La plataforma no graba las reuniones."*
+     - **Columna 2 (`PLATAFORMA`)**: Enlaces a *Directorio BW2*, *Mis conexiones*, *Agenda B2B* y *Sala virtual*.
+     - **Columna 3 (`LEGAL`)**: *Términos y Condiciones `borrador`*, *Política de Privacidad `borrador`*, *Reglas de conducta `borrador`*, y *Uso de WhatsApp y videollamadas `pendiente`* (todos conectados al modal de revisión legal en rojo para abogados).
+     - **Columna 4 (`CONTACTO Y SOPORTE`)**: *Soporte técnico: [correo pendiente]*, botón interactivo *Denunciar una conducta* y *Horario: lunes a viernes, 9 a 18 h*.
+     - **Barra Inferior**: `© 2026 BWOS Digital Partner · Razón social, CUIT y domicilio: [pendiente]` a la izquierda y `Video con Jitsi Meet · Prototipo v4.4 con datos de ejemplo` a la derecha.
 - **Visual Identity & Theme**:
-  - *Aesthetic Direction*: Minimalismo empresarial B2B de alta claridad transaccional basado en el sistema de diseño **BWOS Conectar**.
-  - *Color Palette & Mood*:
-    - Superficie base luminosa (`#FAF8FF`) y tarjetas en blanco puro (`#FFFFFF`).
-    - Primario Cobalto B2B (`#003CB1` / contenedor `#1052E0`) para acciones principales, navegación activa y enfoque.
-    - Secundario Esmeralda (`#006D38` / contenedor `#6BFE9E` / fondo de oferta `#ECFDF5`) para el contexto *Ofrece* y confirmaciones.
-    - Terciario Pizarra (`#3A485C`) y texto principal Azul Profundo (`#131B2E`).
-    - Alerta/Legal en Rojo (`#BA1A1A` / fondo `#FFDAD6`) para rechazar llamadas y destacar los bloques pendientes de consulta con abogados.
-  - *Typography & Hierarchy*: Fuente **Hanken Grotesk** en todos los niveles jerárquicos (`headline-lg` 30px 800, `headline-md` 22px 700, `title-md` 16px 700, `body-md` 14px 400, `label-sm` 11px 700) acompañada de cifras tabulares (`tabular-nums`) para métricas y contadores, e iconografía **Material Symbols Outlined**.
-  - *Component Styling & Layout*: Diseño adaptable con barra superior institucional en escritorio (12 columnas, hasta 1400px–1920px) y navegación inferior ergonómica de 4 pestañas en móvil, respetando objetivos táctiles mínimos de 44px.
-
-- **Interactive Feedback & Motion**:
-  - Contadores de caracteres en vivo (`0/300`) con validación de mínimo 20 caracteres.
-  - Transiciones suaves en botones (`active:scale-95` / `active:scale-[0.98]`), estados de carga al acreditar o conectar con sala Jitsi, y notificaciones tipo *Toast* al enviar invitaciones o posponer llamadas.
+  - *Color Palette & Mood*: Superficie principal clara (`#faf8ff`), primario corporativo (`#003cb1`), pie de página en azul nocturno profundo (`#161f30`) con etiquetas de estado legal en rojo coral suave (`#f87171` / `#fca5a5`) y tipografía `Hanken Grotesk` con numerales tabulares (`tabular-nums`).
 
 ---
 
-### 3. Key Product Decisions & Trade-Offs
+## 3. Key Product Decisions & Trade-Offs
 
-- **Decision 1: Integración de Videollamadas con Jitsi Meet Gratuito**
-  - *Chosen Approach*: Incorporar Jitsi Meet (`https://meet.jit.si/<roomName>`) mediante contenedor interactivo con permisos de cámara y micrófono, generando nombres de sala únicos y deterministas por contraparte (ej. `BWOS-Summit2025-Sala14-InnovaTech`), más un botón de respaldo para abrir la sala en pestaña externa si el entorno restringe permisos de dispositivo.
-  - *Why*: Permite videollamadas reales y gratuitas de inmediato en el MVP sin requerir servidores WebRTC propios ni claves de pago.
-- **Decision 2: Secciones de Abogados en Blanco con Aviso en Rojo**
-  - *Chosen Approach*: Reemplazar cualquier texto contractual, cláusula de privacidad, términos del encuentro o certificación legal por recuadros vacíos con alerta visual en rojo (`#BA1A1A`).
-  - *Why*: Cumple estrictamente la instrucción del usuario de priorizar el MVP funcional y dejar todo el apartado jurídico visible pero en blanco para completarlo tras la consulta con los abogados.
-- **Decision 3: Estado Persistente Unificado en `localStorage`**
-  - *Chosen Approach*: Almacenar el perfil acreditado, las tarjetas B2B (incluyendo las empresas de las capturas con sus imágenes exactas más las creadas por el usuario), el estado de conexiones, marcadores y reuniones agendadas en el navegador, con un botón de "Reiniciar Demo" en la barra de herramientas.
-  - *Why*: Garantiza que todo el flujo funcione de extremo a extremo sin perder cambios al recargar la página.
+- **Decision 1: Interpretación en Tiempo Real del Campo "Otro" con Comas**
+  - *Chosen Approach*: Si el usuario selecciona 0 sectores predefinidos y activa "Otro", puede ingresar 1 sector (`<= 20` caracteres) o 2 sectores separados por `,` (cada uno `<= 20` caracteres, longitud total controlada). Si ya seleccionó 1 sector predefinido y activa "Otro", el campo "Otro" admite 1 sector adicional de hasta 20 caracteres (bloqueando la coma o informando que ya alcanzó el límite de 2 sectores).
+  - *Why*: Cumple estrictamente la regla de negocio de máximo 2 sectores totales y máximo 20 caracteres por sector corto sin fricción para el usuario.
+- **Decision 2: Sincronización de Paginación y Scroll**
+  - *Chosen Approach*: Crear un manejador dedicado `handlePageChange(nextPage)` con `useRef` hacia el contenedor de la cuadrícula (`directoryGridRef`), actualizando `currentPage` a partir de `safeCurrentPage` y ejecutando `requestAnimationFrame(() => directoryGridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }))`.
+  - *Why*: Garantiza que el DOM ya haya pintado las 8 tarjetas correspondientes a la nueva página antes de realizar el desplazamiento suave.
 
 ---
 
-### 4. Technical Architecture & Data Strategy *(Technical Reference)*
+## 4. Technical Architecture & Data Strategy *(Technical Reference)*
 
-- **Architecture & Component Diagram**:
+### Architecture & Component Diagram
+
 ```
-┌──────────────────────────────────────────────────────────────────────────┐
-│                     App State & LocalStorage Store                       │
-│  • UserAccreditation (Nombre, Empresa, WhatsApp, Oferta, Demanda)        │
-│  • B2BCompanies[] (Catálogo inicial con imágenes HTML + nuevas ofertas)  │
-│  • Connections[] & Meetings[] (Vínculos enviados, favoritos, agenda 1:1) │
-│  • ActiveView & ActiveModal (Navegación + Simulador de Llamada Entrante) │
-└────────────────────────────────────┬─────────────────────────────────────┘
-                                     │
-       ┌─────────────────────────────┼─────────────────────────────┐
-       ▼                             ▼                             ▼
-┌─────────────────────┐   ┌─────────────────────────┐   ┌───────────────────────┐
-│  1. Acreditación    │   │  2. Lobby Virtual B2B   │   │  3. Sala Virtual 1:1  │
-│     Empresarial     │   │  & Directorio BW2       │   │     (Jitsi Meet)      │
-│ • Hero & Métricas   │   │ • Buscador + Chips      │   │ • Iframe meet.jit.si  │
-│ • Formulario B2B    │   │ • Tarjetas Clásicas /   │   │ • Ficha de Sinergia   │
-│   con validación    │   │   Tarjetas Tags BW2     │   │   (Oferta / Demanda)  │
-│   20-300 chars      │   │ • Publicar Oferta Modal │   │ • Notas y WhatsApp    │
-└─────────────────────┘   └────────────┬────────────┘   └──────────┬────────────┘
-                                       │                           ▲
-                          ┌────────────┴────────────┐              │
-                          ▼                         ▼              │
-               ┌─────────────────────┐   ┌─────────────────────────┴───┐
-               │   Mis Conexiones    │   │ Modales de Interacción B2B  │
-               │   & Agenda B2B      │   │ • Speed-Pitch Conectar      │
-               │ • Lista de vínculos │   │ • Videollamada Entrante     │
-               │ • Horarios y salas  │   │ • Aviso Rojo Legal Abogados │
-               └─────────────────────┘   └─────────────────────────────┘
+┌───────────────────────────────────────────────────────────────────────────┐
+│                               App (Root State)                            │
+│  • hasInvitationAccess / isAdmin (clientesbinweb@gmail.com)               │
+│  • companies (24 empresas B2B) -> filteredCompanies -> paginatedCompanies │
+│  • currentPage / safeCurrentPage + directoryGridRef (scrollIntoView)      │
+└───────────────┬───────────────────────────────────────────┬───────────────┘
+                │                                           │
+                ▼                                           ▼
+┌───────────────────────────────────────┐   ┌───────────────────────────────┐
+│     Selector Multisectorial (Max 2)   │   │   InstitutionalFooter (Dark)  │
+│  • 10 Sectores B2B + Opción "Otro"    │   │  • Col 1: BW2 + No graba      │
+│  • Parser de coma (,) -> 2 sectores   │   │  • Col 2: Plataforma (4 links)│
+│  • Límite 20 caracteres por sector    │   │  • Col 3: Legal (borrador/pen)│
+│  • Usado en Invitación y Publicar     │   │  • Col 4: Soporte y Denuncias │
+└───────────────────────────────────────┘   └───────────────────────────────┘
 ```
 
-- **Data Model & State**:
-  - `UserProfile`: `{ fullName, companyName, countryCode, phone, offering, demand, accreditedAt }`.
-  - `CompanyCard`: `{ id, name, verified, location, countryFlag, category, sectorLabel, matchScore, responseTime, representative: { name, role, icon, avatar }, offer: { title, badge, description, tags[] }, demand: { title, badge, description, tags[] }, footerNote, footerIcon, logoUrl, isConnected, isBookmarked, immediateCallAvailable }`.
-  - `MeetingItem`: `{ id, companyId, companyName, repName, repRole, repAvatar, matchScore, topic, status: 'scheduled' | 'postponed' | 'completed', timeSlot, roomCode }`.
-
-- **Interactive Component & State Mapping**:
-  - **Formulario de Acreditación**: Valida campos obligatorios y longitud mínima de 20 caracteres en *Qué ofrezco* y *Qué demando*; muestra estado de sincronización y actualiza `UserProfile`, añadiendo o actualizando también la tarjeta de la empresa del usuario en el Lobby.
-  - **Buscador y Filtros del Lobby**: Filtra en tiempo real por texto libre, categoría industrial, modo *Solo Match Inmediato* y alterna entre el estilo de tarjeta detallada y el estilo compacto de etiquetas (BW2), manteniendo contadores exactos y estado vacío con botón de restablecimiento.
-  - **Flujo de Conexión y Llamada Entrante**: Pulsar *Conectar* abre el modal de propuesta directa (*Speed-Pitch*) o cambia el estado a *Conectado* con notificación Toast; pulsar el disparador de *Videollamada Entrante* muestra el modal de Carlos Mendonça (InnovaTech B2B), donde *Aceptar y unirse* abre la vista de Sala Virtual con Jitsi Meet activo, *Posponer 15 min* registra el encuentro en `Agenda B2B`, y *Rechazar* cierra el modal.
-  - **Bloques de Abogados**: Cualquier clic en enlaces legales (*Privacidad y Tratamiento B2B*, *Términos del Encuentro*, *Validación Legal*) despliega el aviso en rojo reservado para revisión jurídica.
+### Interactive Component & State Mapping
+- **Componente Reutilizable de Selección de Sectores (`MultiSectorSelector`)**:
+  - Gestiona `selectedPredefined: string[]` y `otherInput: string`.
+  - Calcula `parsedOtherSectors = otherInput.split(',').map(s => s.trim().slice(0, 20)).filter(Boolean)`.
+  - Impide seleccionar más elementos cuando `selectedPredefined.length + parsedOtherSectors.length >= 2`.
+- **Componente Reutilizable de Pie de Página (`InstitutionalFooter`)**:
+  - Recibe `hasAccess`, `onNavigate(view)`, `onOpenLegalNotice(section)` y `onReportConduct()`.
+  - Renderiza el diseño exacto de la segunda imagen tanto en `InvitationGateView` como en el layout principal de `App`.
+- **Paginador Determinístico**:
+  - `startIndex = (safeCurrentPage - 1) * ITEMS_PER_PAGE` (con `ITEMS_PER_PAGE = 8`).
+  - Asigna `key={`page-${safeCurrentPage}-${selectedSector}-${sortBy}`}` a la cuadrícula para asegurar el reemplazo visual inmediato de las tarjetas al cambiar entre las páginas 1, 2 y 3.

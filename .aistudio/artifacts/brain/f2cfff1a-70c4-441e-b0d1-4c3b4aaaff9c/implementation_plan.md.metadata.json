@@ -1,6 +1,6 @@
 {
-  "summary":  "Plan de implementación completo para la plataforma BWOS Conectar B2B (Summit 2025), incluyendo el flujo unificado de Acreditación Empresarial, Lobby Virtual B2B e Interoperabilidad, Mis Conexiones, Agenda B2B, Videollamada B2B Entrante con integración gratuita de Jitsi Meet en tiempo real, persistencia local con opción de reinicio, y avisos destacados en rojo para las secciones pendientes de revisión legal con abogados.",
-  "updatedAt":  "2026-10-26T11:42:09.470847639Z",
+  "summary":  "Plan de implementación para selector multisectorial B2B (hasta 2 sectores + opción Otro con soporte de comas y límite de 20 caracteres), nuevo pie de página oscuro institucional de 4 columnas en todas las vistas, y optimización del paginador del directorio con sincronización de scrollIntoView.",
+  "updatedAt":  "2026-10-26T14:20:35.721595666Z",
   "requestFeedback":  true,
   "userFacing":  true
 }

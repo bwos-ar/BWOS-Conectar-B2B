@@ -1,6 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AccreditationView } from './components/AccreditationView';
 import { IncomingCallModal } from './components/IncomingCallModal';
+import { InstitutionalFooter } from './components/InstitutionalFooter';
 import {
   InvitationGateView,
   InvitationRequestData,
@@ -9,6 +10,10 @@ import {
   InlineLegalRedBanner,
   LegalRedNoticeModal,
 } from './components/LegalRedNoticeModal';
+import {
+  B2B_SECTOR_OPTIONS,
+  MultiSectorSelector,
+} from './components/MultiSectorSelector';
 import { MvpDevelopmentBanner } from './components/MvpDevelopmentBanner';
 import { NetworkingInsights } from './components/NetworkingInsights';
 import { VirtualCallRoom } from './components/VirtualCallRoom';
@@ -107,11 +112,13 @@ export default function App() {
   const [selectedSector, setSelectedSector] = useState<
     'all' | 'saas' | 'logistica' | 'manufactura' | 'servicios'
   >('all');
+  const [selectedSubSector, setSelectedSubSector] = useState<string>('ALL');
   const [onlyImmediateMatch, setOnlyImmediateMatch] = useState(false);
   const [minMatchFilter, setMinMatchFilter] = useState<number>(0);
   const [countryFilter, setCountryFilter] = useState<string>('ALL');
   const [sortBy, setSortBy] = useState<'match' | 'response'>('match');
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const directoryGridRef = useRef<HTMLElement | null>(null);
 
   // Live Active Executives Counter (subtle heartbeat)
   const [activeExecsCount, setActiveExecsCount] = useState<number>(142);
@@ -140,6 +147,9 @@ export default function App() {
   const [newCategory, setNewCategory] = useState<
     'saas' | 'logistica' | 'manufactura' | 'servicios'
   >('saas');
+  const [newSectorsList, setNewSectorsList] = useState<string[]>([
+    'SaaS & Tecnología',
+  ]);
   const [newOfferText, setNewOfferText] = useState('');
   const [newOfferTags, setNewOfferTags] = useState('');
   const [newDemandText, setNewDemandText] = useState('');
@@ -209,6 +219,20 @@ export default function App() {
         if (selectedSector !== 'all' && c.category !== selectedSector) {
           return false;
         }
+        if (selectedSubSector !== 'ALL') {
+          const subOption = B2B_SECTOR_OPTIONS.find(
+            (opt) => opt.id === selectedSubSector
+          );
+          if (subOption) {
+            const matchesCategory = c.category === subOption.categoryKey;
+            const matchesText =
+              c.sectorLabel
+                .toLowerCase()
+                .includes(subOption.label.split(' ')[0].toLowerCase()) ||
+              matchesCategory;
+            if (!matchesText) return false;
+          }
+        }
         if (onlyImmediateMatch && !c.immediateCallAvailable) {
           return false;
         }
@@ -249,6 +273,7 @@ export default function App() {
     companies,
     searchQuery,
     selectedSector,
+    selectedSubSector,
     onlyImmediateMatch,
     minMatchFilter,
     countryFilter,
@@ -261,6 +286,7 @@ export default function App() {
   }, [
     searchQuery,
     selectedSector,
+    selectedSubSector,
     onlyImmediateMatch,
     minMatchFilter,
     countryFilter,
@@ -272,12 +298,32 @@ export default function App() {
     [filteredCompanies.length]
   );
 
-  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const safeCurrentPage = Math.max(1, Math.min(currentPage, totalPages));
+
+  // Keep currentPage state synchronized if totalPages shrinks
+  useEffect(() => {
+    if (currentPage !== safeCurrentPage) {
+      setCurrentPage(safeCurrentPage);
+    }
+  }, [currentPage, safeCurrentPage]);
 
   const paginatedCompanies = useMemo(() => {
     const startIndex = (safeCurrentPage - 1) * ITEMS_PER_PAGE;
     return filteredCompanies.slice(startIndex, startIndex + ITEMS_PER_PAGE);
   }, [filteredCompanies, safeCurrentPage]);
+
+  const handlePageChange = (targetPage: number) => {
+    const clampedPage = Math.max(1, Math.min(targetPage, totalPages));
+    setCurrentPage(clampedPage);
+    requestAnimationFrame(() => {
+      if (directoryGridRef.current) {
+        directoryGridRef.current.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+        });
+      }
+    });
+  };
 
   const sectorCounts = useMemo(() => {
     return {
@@ -536,6 +582,17 @@ export default function App() {
       return;
     }
 
+    const formattedSectorLabel =
+      newSectorsList.length > 0
+        ? newSectorsList.slice(0, 2).join(' • ')
+        : newCategory === 'saas'
+        ? 'SaaS & Tecnología'
+        : newCategory === 'logistica'
+        ? 'Logística & Fintech'
+        : newCategory === 'manufactura'
+        ? 'Manufactura & Industria 4.0'
+        : 'Servicios Corporativos';
+
     const newCard: CompanyCard = {
       id: `comp-${Date.now()}`,
       name: newCompanyName.trim(),
@@ -546,14 +603,7 @@ export default function App() {
       countryFlag: '🌎',
       countryCode: 'CO',
       category: newCategory,
-      sectorLabel:
-        newCategory === 'saas'
-          ? 'SaaS & Tecnología'
-          : newCategory === 'logistica'
-          ? 'Logística & Fintech'
-          : newCategory === 'manufactura'
-          ? 'Manufactura & Industria 4.0'
-          : 'Servicios Corporativos',
+      sectorLabel: formattedSectorLabel,
       matchScore: Math.floor(92 + Math.random() * 7),
       responseTime: 'Resp. < 15min',
       summaryDescription: newOfferText.trim(),
@@ -686,6 +736,7 @@ export default function App() {
   const resetFilters = () => {
     setSearchQuery('');
     setSelectedSector('all');
+    setSelectedSubSector('ALL');
     setOnlyImmediateMatch(false);
     setMinMatchFilter(0);
     setCountryFilter('ALL');
@@ -1502,6 +1553,40 @@ export default function App() {
                       />
                       Solo Match Inmediato
                     </button>
+
+                    {/* Expanded Sub-Sector Selector in Filter Bar */}
+                    <div className="relative flex items-center">
+                      <select
+                        aria-label="Filtrar por subsector industrial ampliado"
+                        value={selectedSubSector}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setSelectedSubSector(val);
+                          if (val !== 'ALL') {
+                            const found = B2B_SECTOR_OPTIONS.find(
+                              (o) => o.id === val
+                            );
+                            if (found) {
+                              setSelectedSector(found.categoryKey);
+                            }
+                          }
+                        }}
+                        className={`px-3.5 py-1.5 rounded-full font-label-md transition-all cursor-pointer outline-none ${
+                          selectedSubSector !== 'ALL'
+                            ? 'bg-primary text-on-primary font-bold shadow-xs'
+                            : 'bg-surface-container-lowest text-on-surface-variant ring-1 ring-outline-variant/60 hover:bg-surface-container-low'
+                        }`}
+                      >
+                        <option value="ALL">
+                          + Más Sectores ({B2B_SECTOR_OPTIONS.length})
+                        </option>
+                        {B2B_SECTOR_OPTIONS.map((opt) => (
+                          <option key={opt.id} value={opt.id}>
+                            {opt.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
 
                   {/* View Mode Switcher between Lobby Cards (Image_8) and BW2 Tag Cards (Image_16) */}
@@ -1535,8 +1620,9 @@ export default function App() {
 
             {/* Cards Grid Section */}
             <section
+              ref={directoryGridRef}
               id="directory-grid-anchor"
-              className="w-full px-4 md:px-8 py-5 scroll-mt-28"
+              className="w-full px-4 md:px-8 py-5 scroll-mt-32"
             >
               <div className="max-w-[1600px] mx-auto">
                 {filteredCompanies.length === 0 ? (
@@ -1562,7 +1648,10 @@ export default function App() {
                   </div>
                 ) : activeView === 'bw2-directory' ? (
                   /* BW2 INTEROPERABILITY TAG CARDS GRID (Matches Image_16) */
-                  <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-6">
+                  <div
+                    key={`grid-bw2-page-${safeCurrentPage}`}
+                    className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-6"
+                  >
                     {paginatedCompanies.map((company) => (
                       <article
                         key={company.id}
@@ -1727,7 +1816,10 @@ export default function App() {
                   </div>
                 ) : (
                   /* STANDARD LOBBY VIRTUAL B2B CARDS GRID (Matches Image_8 & Image_10 & Image_2) */
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                  <div
+                    key={`grid-lobby-page-${safeCurrentPage}`}
+                    className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
+                  >
                     {paginatedCompanies.map((company) => (
                       <article
                         key={company.id}
@@ -2001,13 +2093,7 @@ export default function App() {
                       <button
                         type="button"
                         disabled={safeCurrentPage <= 1}
-                        onClick={() => {
-                          const prev = Math.max(1, safeCurrentPage - 1);
-                          setCurrentPage(prev);
-                          document
-                            .getElementById('directory-grid-anchor')
-                            ?.scrollIntoView({ behavior: 'smooth' });
-                        }}
+                        onClick={() => handlePageChange(safeCurrentPage - 1)}
                         className="px-3 h-9 rounded-lg font-label-md flex items-center gap-1 bg-surface-container-lowest ring-1 ring-outline-variant/60 text-on-surface hover:bg-surface-container-low disabled:opacity-40 disabled:pointer-events-none transition-colors cursor-pointer"
                       >
                         <span className="material-symbols-outlined text-[16px]">
@@ -2021,12 +2107,8 @@ export default function App() {
                           <button
                             key={p}
                             type="button"
-                            onClick={() => {
-                              setCurrentPage(p);
-                              document
-                                .getElementById('directory-grid-anchor')
-                                ?.scrollIntoView({ behavior: 'smooth' });
-                            }}
+                            aria-current={safeCurrentPage === p ? 'page' : undefined}
+                            onClick={() => handlePageChange(p)}
                             className={`w-9 h-9 rounded-lg font-title-md flex items-center justify-center transition-colors cursor-pointer ${
                               safeCurrentPage === p
                                 ? 'bg-primary text-on-primary shadow-xs font-bold'
@@ -2041,13 +2123,7 @@ export default function App() {
                       <button
                         type="button"
                         disabled={safeCurrentPage >= totalPages}
-                        onClick={() => {
-                          const next = Math.min(totalPages, safeCurrentPage + 1);
-                          setCurrentPage(next);
-                          document
-                            .getElementById('directory-grid-anchor')
-                            ?.scrollIntoView({ behavior: 'smooth' });
-                        }}
+                        onClick={() => handlePageChange(safeCurrentPage + 1)}
                         className="px-3 h-9 rounded-lg font-label-md flex items-center gap-1 bg-surface-container-lowest ring-1 ring-outline-variant/60 text-on-surface hover:bg-surface-container-low disabled:opacity-40 disabled:pointer-events-none transition-colors cursor-pointer"
                       >
                         <span>Siguiente</span>
@@ -2064,58 +2140,12 @@ export default function App() {
         )}
       </main>
 
-      {/* Institutional Footer with Red Links for Lawyer Review */}
-      <footer className="w-full bg-surface-container-low border-t border-surface-container-high mt-8">
-        <div className="max-w-[1600px] mx-auto px-4 md:px-8 py-5 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-title-md text-on-surface font-bold">
-              BWOS Conectar B2B
-            </span>
-            <span className="font-body-sm text-on-surface-variant">
-              © 2025 Plataforma Oficial de Vinculación y Ruedas de Negocios.
-            </span>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-4 font-label-md">
-            <button
-              type="button"
-              onClick={() =>
-                setLegalModalSection(
-                  'Privacidad y Tratamiento de Datos Corporativos B2B'
-                )
-              }
-              className="text-[#ba1a1a] hover:underline font-bold flex items-center gap-1 cursor-pointer"
-            >
-              <span className="w-2 h-2 rounded-full bg-[#ba1a1a]" />
-              Privacidad y Tratamiento B2B [PENDIENTE ABOGADOS]
-            </button>
-            <button
-              type="button"
-              onClick={() =>
-                setLegalModalSection(
-                  'Términos y Condiciones del Encuentro y Rondas 1-a-1'
-                )
-              }
-              className="text-[#ba1a1a] hover:underline font-bold flex items-center gap-1 cursor-pointer"
-            >
-              <span className="w-2 h-2 rounded-full bg-[#ba1a1a]" />
-              Términos del Encuentro [PENDIENTE ABOGADOS]
-            </button>
-            <button
-              type="button"
-              onClick={() =>
-                showToast(
-                  'Soporte Técnico en Vivo Activo',
-                  'Salas Jitsi Meet operativas al 100%.'
-                )
-              }
-              className="text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer"
-            >
-              Soporte Técnico en Vivo
-            </button>
-          </div>
-        </div>
-      </footer>
+      {/* Dark 4-Column Institutional Footer (Matches Image 2) */}
+      <InstitutionalFooter
+        hasAccess={hasInvitationAccess}
+        onNavigate={(view) => setActiveView(view)}
+        onOpenLegalNotice={(sec) => setLegalModalSection(sec)}
+      />
 
       {/* Mobile Bottom Navigation Bar (Matches Image_2 & Image_10) */}
       <nav
@@ -2333,7 +2363,7 @@ export default function App() {
               onSubmit={handlePublishNewOffer}
               className="flex flex-col gap-4"
             >
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="flex flex-col gap-3">
                 <div>
                   <label className="font-label-md text-on-surface block mb-1">
                     Nombre de la Empresa *
@@ -2348,21 +2378,14 @@ export default function App() {
                   />
                 </div>
                 <div>
-                  <label className="font-label-md text-on-surface block mb-1">
-                    Sector Industrial *
-                  </label>
-                  <select
-                    value={newCategory}
-                    onChange={(e) => setNewCategory(e.target.value as any)}
-                    className="w-full px-3 py-2.5 rounded-xl bg-surface border border-outline-variant font-body-md outline-none focus:border-primary"
-                  >
-                    <option value="saas">SaaS & Tecnología</option>
-                    <option value="logistica">Logística & Fintech</option>
-                    <option value="manufactura">
-                      Manufactura & Industria 4.0
-                    </option>
-                    <option value="servicios">Servicios Corporativos</option>
-                  </select>
+                  <MultiSectorSelector
+                    selectedSectors={newSectorsList}
+                    onChange={(sectors, primaryCat) => {
+                      setNewSectorsList(sectors);
+                      setNewCategory(primaryCat);
+                    }}
+                    label="Sector Industrial (Hasta 2 sectores + opción Otro máx. 20 car.)"
+                  />
                 </div>
               </div>
 

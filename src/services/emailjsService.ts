@@ -58,21 +58,31 @@ const STORAGE_KEYS = {
 };
 
 export function getEmailJSConfig(): EmailJSRuntimeConfig {
-  const envServiceId =
-    (import.meta as any).env?.VITE_EMAILJS_SERVICE_ID || '';
-  const envTemplateId =
-    (import.meta as any).env?.VITE_EMAILJS_TEMPLATE_ID || '';
-  const envPublicKey =
-    (import.meta as any).env?.VITE_EMAILJS_PUBLIC_KEY || '';
+  const envServiceId = import.meta.env.VITE_EMAILJS_SERVICE_ID || '';
+  const envTemplateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID || '';
+  const envPublicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || '';
 
   try {
     const saved = localStorage.getItem(STORAGE_KEYS.EMAILJS_CONFIG);
     if (saved) {
       const parsed = JSON.parse(saved);
+      const chosenServiceId =
+        parsed.serviceId && parsed.serviceId !== 'service_bwos_b2b'
+          ? parsed.serviceId
+          : envServiceId || parsed.serviceId || '';
+      const chosenTemplateId =
+        parsed.templateId && parsed.templateId !== 'template_bwos_notificacion'
+          ? parsed.templateId
+          : envTemplateId || parsed.templateId || '';
+      const chosenPublicKey =
+        parsed.publicKey && parsed.publicKey !== 'YOUR_EMAILJS_PUBLIC_KEY'
+          ? parsed.publicKey
+          : envPublicKey || parsed.publicKey || '';
+
       return {
-        serviceId: parsed.serviceId || envServiceId,
-        templateId: parsed.templateId || envTemplateId,
-        publicKey: parsed.publicKey || envPublicKey,
+        serviceId: chosenServiceId,
+        templateId: chosenTemplateId,
+        publicKey: chosenPublicKey,
       };
     }
   } catch {
@@ -143,7 +153,7 @@ export async function sendB2BEmailNotification(
   const config = getEmailJSConfig();
   const ccAdmin = payload.ccAdminEmail || ADMIN_EMAIL;
 
-  const templateParams = {
+  const templateParams: Record<string, unknown> = {
     to_email: payload.toEmail,
     to_name: payload.toName,
     from_name: payload.fromName,
@@ -156,6 +166,16 @@ export async function sendB2BEmailNotification(
     message: payload.message,
     jitsi_url: payload.jitsiRoomUrl || 'https://meet.jit.si/BWOS_Conectar_B2B',
     reply_to: payload.fromEmail || ADMIN_EMAIL,
+
+    // Aliases to support various EmailJS template parameter naming conventions
+    email: payload.toEmail,
+    name: payload.toName,
+    user_email: payload.toEmail,
+    user_name: payload.toName,
+    recipient_email: payload.toEmail,
+    recipient_name: payload.toName,
+    sender_name: payload.fromName,
+    sender_email: payload.fromEmail || ADMIN_EMAIL,
   };
 
   let deliveryMode: 'emailjs_live' | 'pilot_outbox' = 'pilot_outbox';
@@ -163,7 +183,7 @@ export async function sendB2BEmailNotification(
 
   if (isEmailJSConfigured(config)) {
     try {
-      await emailjs.send(
+      const response = await emailjs.send(
         config.serviceId,
         config.templateId,
         templateParams,
@@ -172,10 +192,12 @@ export async function sendB2BEmailNotification(
         }
       );
       deliveryMode = 'emailjs_live';
-      statusText = `Enviado vía EmailJS API a ${payload.toEmail} (CC: ${ccAdmin})`;
-    } catch (err) {
+      statusText = `Enviado en vivo vía EmailJS (${response.status} ${response.text}) a ${payload.toEmail} (CC: ${ccAdmin})`;
+    } catch (err: any) {
+      console.error('[EmailJS Send Error]', err);
       deliveryMode = 'pilot_outbox';
-      statusText = `Registrado en Bandeja EmailJS (${payload.toEmail} · CC: ${ccAdmin})`;
+      const errMsg = err?.text || err?.message || 'Error desconocido EmailJS';
+      statusText = `Error EmailJS API (${errMsg}) · Registrado en bandeja (${payload.toEmail} · CC: ${ccAdmin})`;
     }
   } else {
     statusText = `Despachado en Bandeja EmailJS (${payload.toEmail} · CC: ${ccAdmin})`;

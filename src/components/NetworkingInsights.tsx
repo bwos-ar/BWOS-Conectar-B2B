@@ -370,7 +370,7 @@ export const NetworkingInsights: React.FC<NetworkingInsightsProps> = ({
                           onClick={(data) => {
                             if (data?.key) {
                               onSelectSector(
-                                selectedSector === data.key ? 'all' : data.key
+                                selectedSector === data.key ? 'all' : (data.key as any)
                               );
                             }
                           }}

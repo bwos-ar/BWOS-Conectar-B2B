@@ -21,6 +21,7 @@ export interface EmailNotificationPayload {
   jitsiRoomUrl?: string;
   approvalUrl?: string;
   oneTimeToken?: string;
+  tokenStatus?: 'pendiente' | 'usado';
   rejectUrl?: string;
   ccAdminEmail?: string;
 }
@@ -78,8 +79,126 @@ const STORAGE_KEYS = {
   EMAILJS_CONFIG: 'bwos_b2b_emailjs_config_v1',
   WEEKLY_REPORT_SCHEDULE: 'bwos_b2b_weekly_report_schedule_v1',
   USED_APPROVAL_TOKENS: 'bwos_b2b_used_approval_tokens_v1',
+  ISSUED_MAGIC_LOGIN_TOKENS: 'bwos_b2b_issued_magic_login_tokens_v1',
   USED_MAGIC_LOGIN_TOKENS: 'bwos_b2b_used_magic_login_tokens_v1',
+  ADMIN_CONSUMED_SESSION_TOKEN: 'bwos_b2b_admin_consumed_magic_token_v1',
+  SESSION_INSTANCE_ID: 'bwos_b2b_session_instance_id_v1',
+  TOKEN_REUSE_ALERT: 'bwos_b2b_magic_token_reuse_alert_v1',
 };
+
+export interface IssuedMagicTokenRecord {
+  token: string;
+  email: string;
+  fullName: string;
+  companyName: string;
+  role: string;
+  createdAt: string;
+  status: 'pendiente' | 'usado';
+  used: boolean;
+  usedAt?: string;
+  consumedBySessionId?: string;
+  reusedAttemptDetected?: boolean;
+  reusedAttemptAt?: string;
+  reusedAttemptBySessionId?: string;
+}
+
+export interface UsedMagicTokenPersistenceEntry {
+  token: string;
+  status: 'usado';
+  usedAt: string;
+  email?: string;
+  consumedBySessionId?: string;
+  reusedAttemptDetected?: boolean;
+  reusedAttemptAt?: string;
+  reusedAttemptBySessionId?: string;
+}
+
+export interface AdminTokenSecurityEvent {
+  type: 'TOKEN_REUSE_DETECTED' | 'TOKEN_CONSUMED' | 'SESSION_REVOKED';
+  token: string;
+  email?: string;
+  sessionInstanceId: string;
+  timestamp: string;
+}
+
+// In-memory store paired with localStorage for single-use Magic Link tokens
+const memoryIssuedMagicTokens = new Map<string, IssuedMagicTokenRecord>();
+const memoryUsedMagicTokens = new Set<string>();
+let memoryFallbackSessionId: string | null = null;
+
+/**
+ * Returns a unique session instance identifier scoped to the current browser tab (sessionStorage).
+ * Enables detecting if a Magic Link token stored in localStorage was consumed by a different tab/session.
+ */
+export function getCurrentSessionInstanceId(): string {
+  try {
+    if (typeof window !== 'undefined' && window.sessionStorage) {
+      const existing = window.sessionStorage.getItem(
+        STORAGE_KEYS.SESSION_INSTANCE_ID
+      );
+      if (existing) return existing;
+      const randomPart =
+        typeof crypto !== 'undefined' && crypto.randomUUID
+          ? crypto.randomUUID().replace(/-/g, '').slice(0, 12)
+          : Math.random().toString(36).slice(2, 12);
+      const created = `sess_${Date.now().toString(36)}_${randomPart}`;
+      window.sessionStorage.setItem(STORAGE_KEYS.SESSION_INSTANCE_ID, created);
+      return created;
+    }
+  } catch {
+    // fallback to memory if sessionStorage is restricted
+  }
+  if (!memoryFallbackSessionId) {
+    memoryFallbackSessionId = `sess_mem_${Date.now().toString(36)}_${Math.random()
+      .toString(36)
+      .slice(2, 10)}`;
+  }
+  return memoryFallbackSessionId;
+}
+
+export function notifyAdminTokenSecurityEvent(
+  event: AdminTokenSecurityEvent
+): void {
+  try {
+    localStorage.setItem(STORAGE_KEYS.TOKEN_REUSE_ALERT, JSON.stringify(event));
+  } catch {
+    // ignore storage errors
+  }
+  try {
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      const channel = new BroadcastChannel('bwos_admin_token_guard');
+      channel.postMessage(event);
+      channel.close();
+    }
+  } catch {
+    // ignore BroadcastChannel errors
+  }
+}
+
+export function subscribeAdminTokenSecurityEvents(
+  onEvent: (event: AdminTokenSecurityEvent) => void
+): () => void {
+  let channel: BroadcastChannel | null = null;
+  try {
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      channel = new BroadcastChannel('bwos_admin_token_guard');
+      channel.onmessage = (msgEvent) => {
+        if (msgEvent?.data && msgEvent.data.type) {
+          onEvent(msgEvent.data as AdminTokenSecurityEvent);
+        }
+      };
+    }
+  } catch {
+    // ignore BroadcastChannel errors
+  }
+  return () => {
+    try {
+      channel?.close();
+    } catch {
+      // ignore close errors
+    }
+  };
+}
 
 export const DAY_OF_WEEK_LABELS: Record<number, string> = {
   1: 'Lunes',
@@ -155,7 +274,38 @@ export function generateAdminMagicLoginToken(): string {
   return `mlk_${Date.now().toString(36)}_${randomPart.slice(0, 18)}`;
 }
 
-export function getUsedMagicLoginTokens(): Record<string, string> {
+export function getIssuedMagicLoginTokens(): Record<
+  string,
+  IssuedMagicTokenRecord
+> {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.ISSUED_MAGIC_LOGIN_TOKENS);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+export function saveIssuedMagicLoginToken(
+  record: IssuedMagicTokenRecord
+): void {
+  memoryIssuedMagicTokens.set(record.token, record);
+  try {
+    const issuedMap = getIssuedMagicLoginTokens();
+    issuedMap[record.token] = record;
+    localStorage.setItem(
+      STORAGE_KEYS.ISSUED_MAGIC_LOGIN_TOKENS,
+      JSON.stringify(issuedMap)
+    );
+  } catch {
+    // ignore storage errors
+  }
+}
+
+export function getUsedMagicLoginTokens(): Record<
+  string,
+  UsedMagicTokenPersistenceEntry | string
+> {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.USED_MAGIC_LOGIN_TOKENS);
     return raw ? JSON.parse(raw) : {};
@@ -164,28 +314,377 @@ export function getUsedMagicLoginTokens(): Record<string, string> {
   }
 }
 
-export function isMagicLoginTokenUsed(token?: string | null): boolean {
-  if (!token || !token.startsWith('mlk_')) return true;
-  const usedMap = getUsedMagicLoginTokens();
-  return Boolean(usedMap[token]);
+export function getConsumedAdminSessionToken(): string | null {
+  try {
+    return (
+      localStorage.getItem(STORAGE_KEYS.ADMIN_CONSUMED_SESSION_TOKEN) || null
+    );
+  } catch {
+    return null;
+  }
 }
 
-export function markMagicLoginTokenUsed(token: string): void {
+export function setConsumedAdminSessionToken(token: string): void {
   if (!token) return;
   try {
+    localStorage.setItem(STORAGE_KEYS.ADMIN_CONSUMED_SESSION_TOKEN, token);
+  } catch {
+    // ignore storage errors
+  }
+}
+
+export function clearConsumedAdminSessionToken(): void {
+  try {
+    localStorage.removeItem(STORAGE_KEYS.ADMIN_CONSUMED_SESSION_TOKEN);
+  } catch {
+    // ignore storage errors
+  }
+}
+
+export function isMagicLoginTokenUsed(token?: string | null): boolean {
+  if (!token || !token.startsWith('mlk_')) return true;
+  if (memoryUsedMagicTokens.has(token)) return true;
+
+  const usedMap = getUsedMagicLoginTokens();
+  const usedEntry = usedMap[token];
+  if (usedEntry) {
+    if (typeof usedEntry === 'string') return true;
+    if (usedEntry.status === 'usado') return true;
+  }
+
+  const issuedMap = getIssuedMagicLoginTokens();
+  const memRecord = memoryIssuedMagicTokens.get(token);
+  const storedRecord = issuedMap[token];
+  if (
+    memRecord?.used ||
+    memRecord?.status === 'usado' ||
+    storedRecord?.used ||
+    storedRecord?.status === 'usado'
+  ) {
+    return true;
+  }
+
+  const matchingLog = getSavedEmailLogs().find(
+    (l) => l.oneTimeToken === token && l.tokenStatus === 'usado'
+  );
+  if (matchingLog) return true;
+
+  return false;
+}
+
+export function markMagicLoginTokenUsed(
+  token: string,
+  email?: string | null,
+  sessionInstanceId?: string
+): void {
+  if (!token) return;
+  const nowIso = new Date().toISOString();
+  const cleanEmail = (email || '').trim().toLowerCase();
+  const activeSessionId = sessionInstanceId || getCurrentSessionInstanceId();
+  memoryUsedMagicTokens.add(token);
+
+  const memRecord = memoryIssuedMagicTokens.get(token);
+  if (memRecord) {
+    memoryIssuedMagicTokens.set(token, {
+      ...memRecord,
+      status: 'usado',
+      used: true,
+      usedAt: nowIso,
+      consumedBySessionId: activeSessionId,
+      reusedAttemptDetected: false,
+    });
+  }
+
+  try {
     const usedMap = getUsedMagicLoginTokens();
-    usedMap[token] = new Date().toISOString();
+    usedMap[token] = {
+      token,
+      status: 'usado',
+      usedAt: nowIso,
+      email: cleanEmail || memRecord?.email || undefined,
+      consumedBySessionId: activeSessionId,
+      reusedAttemptDetected: false,
+    };
     localStorage.setItem(
       STORAGE_KEYS.USED_MAGIC_LOGIN_TOKENS,
       JSON.stringify(usedMap)
     );
+
+    const issuedMap = getIssuedMagicLoginTokens();
+    const existingIssued = issuedMap[token] || memRecord;
+    issuedMap[token] = existingIssued
+      ? {
+          ...existingIssued,
+          status: 'usado',
+          used: true,
+          usedAt: nowIso,
+          consumedBySessionId: activeSessionId,
+          reusedAttemptDetected: false,
+        }
+      : {
+          token,
+          email: cleanEmail || ADMIN_EMAIL,
+          fullName: 'Administrador BWOS',
+          companyName: 'BWOS | Sitios Web & Merch',
+          role: 'Administrador de Admisiones B2B',
+          createdAt: nowIso,
+          status: 'usado',
+          used: true,
+          usedAt: nowIso,
+          consumedBySessionId: activeSessionId,
+          reusedAttemptDetected: false,
+        };
+    localStorage.setItem(
+      STORAGE_KEYS.ISSUED_MAGIC_LOGIN_TOKENS,
+      JSON.stringify(issuedMap)
+    );
+
+    // Also mark corresponding EmailJS log entry as 'usado' in persistent storage
+    const logs = getSavedEmailLogs();
+    let updatedAnyLog = false;
+    const updatedLogs = logs.map((log) => {
+      if (log.oneTimeToken === token) {
+        updatedAnyLog = true;
+        return {
+          ...log,
+          tokenStatus: 'usado' as const,
+          statusText: `Token marcado como 'usado' en localStorage (${new Date(
+            nowIso
+          ).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})`,
+        };
+      }
+      return log;
+    });
+    if (updatedAnyLog) {
+      saveEmailLogs(updatedLogs);
+    }
   } catch {
     // ignore storage errors
   }
 }
 
 /**
+ * Records a token reuse attempt in localStorage and broadcasts a security event across all tabs/sessions
+ * so that any active view using this token is closed immediately and locked at InvitationGateView.
+ */
+export function recordMagicTokenReuseAttempt(
+  token: string,
+  email?: string | null
+): void {
+  if (!token) return;
+  const nowIso = new Date().toISOString();
+  const cleanEmail = (email || '').trim().toLowerCase();
+  const currentSessionId = getCurrentSessionInstanceId();
+
+  const memRecord = memoryIssuedMagicTokens.get(token);
+  if (memRecord) {
+    memoryIssuedMagicTokens.set(token, {
+      ...memRecord,
+      reusedAttemptDetected: true,
+      reusedAttemptAt: nowIso,
+      reusedAttemptBySessionId: currentSessionId,
+    });
+  }
+
+  try {
+    const usedMap = getUsedMagicLoginTokens();
+    const existingUsed = usedMap[token];
+    const baseUsed: UsedMagicTokenPersistenceEntry =
+      typeof existingUsed === 'object' && existingUsed !== null
+        ? existingUsed
+        : {
+            token,
+            status: 'usado',
+            usedAt: typeof existingUsed === 'string' ? existingUsed : nowIso,
+            email: cleanEmail || undefined,
+          };
+    usedMap[token] = {
+      ...baseUsed,
+      reusedAttemptDetected: true,
+      reusedAttemptAt: nowIso,
+      reusedAttemptBySessionId: currentSessionId,
+    };
+    localStorage.setItem(
+      STORAGE_KEYS.USED_MAGIC_LOGIN_TOKENS,
+      JSON.stringify(usedMap)
+    );
+
+    const issuedMap = getIssuedMagicLoginTokens();
+    const existingIssued = issuedMap[token] || memRecord;
+    if (existingIssued) {
+      issuedMap[token] = {
+        ...existingIssued,
+        status: 'usado',
+        used: true,
+        reusedAttemptDetected: true,
+        reusedAttemptAt: nowIso,
+        reusedAttemptBySessionId: currentSessionId,
+      };
+      localStorage.setItem(
+        STORAGE_KEYS.ISSUED_MAGIC_LOGIN_TOKENS,
+        JSON.stringify(issuedMap)
+      );
+    }
+  } catch {
+    // ignore storage errors
+  }
+
+  notifyAdminTokenSecurityEvent({
+    type: 'TOKEN_REUSE_DETECTED',
+    token,
+    email: cleanEmail || undefined,
+    sessionInstanceId: currentSessionId,
+    timestamp: nowIso,
+  });
+}
+
+export interface AdminSessionTokenValidationState {
+  valid: boolean;
+  reason?:
+    | 'missing_email'
+    | 'missing_token'
+    | 'not_marked_used'
+    | 'reuse_attempt_detected'
+    | 'used_by_another_session'
+    | 'email_mismatch';
+  token?: string;
+  consumedBySessionId?: string;
+}
+
+/**
+ * Validates the active session token stored in App.tsx state / localStorage against synchronized persistence:
+ * 1. Token must exist and be marked as 'usado' in localStorage.
+ * 2. Token must not have triggered a reuse attempt (reusedAttemptDetected).
+ * 3. Token must belong to the current browser session instance (consumedBySessionId), preventing another session from hijacking or sharing it.
+ * 4. Token email must match the authenticated admin email.
+ */
+export function validateActiveAdminSessionTokenState(
+  email?: string | null,
+  sessionToken?: string | null
+): AdminSessionTokenValidationState {
+  const cleanEmail = (email || '').trim().toLowerCase();
+  if (!cleanEmail) {
+    return { valid: false, reason: 'missing_email' };
+  }
+  const activeToken = sessionToken || getConsumedAdminSessionToken();
+  if (!activeToken || !activeToken.startsWith('mlk_')) {
+    return { valid: false, reason: 'missing_token' };
+  }
+
+  if (!isMagicLoginTokenUsed(activeToken)) {
+    return { valid: false, reason: 'not_marked_used', token: activeToken };
+  }
+
+  const usedMap = getUsedMagicLoginTokens();
+  const usedEntry = usedMap[activeToken];
+  const issuedMap = getIssuedMagicLoginTokens();
+  const record =
+    issuedMap[activeToken] || memoryIssuedMagicTokens.get(activeToken);
+
+  if (
+    (typeof usedEntry === 'object' && usedEntry?.reusedAttemptDetected) ||
+    record?.reusedAttemptDetected
+  ) {
+    return {
+      valid: false,
+      reason: 'reuse_attempt_detected',
+      token: activeToken,
+    };
+  }
+
+  const currentSessionId = getCurrentSessionInstanceId();
+  const ownerSessionId =
+    (typeof usedEntry === 'object' && usedEntry?.consumedBySessionId) ||
+    record?.consumedBySessionId;
+
+  if (ownerSessionId && ownerSessionId !== currentSessionId) {
+    return {
+      valid: false,
+      reason: 'used_by_another_session',
+      token: activeToken,
+      consumedBySessionId: ownerSessionId,
+    };
+  }
+
+  if (record && record.email && record.email.toLowerCase() !== cleanEmail) {
+    return { valid: false, reason: 'email_mismatch', token: activeToken };
+  }
+
+  return {
+    valid: true,
+    token: activeToken,
+    consumedBySessionId: ownerSessionId || currentSessionId,
+  };
+}
+
+/**
+ * Strictly verifies that the current Admin Dashboard session is backed by a Magic Link token
+ * that has been consumed, persisted as 'usado' in localStorage, and not reused by another session.
+ */
+export function verifyAdminDashboardSessionToken(
+  email?: string | null,
+  sessionToken?: string | null
+): boolean {
+  return validateActiveAdminSessionTokenState(email, sessionToken).valid;
+}
+
+/**
+ * Validates and consumes a single-use Magic Link token once for an admin login attempt.
+ * Marks the token as 'usado' in localStorage and prevents any subsequent retry with the same token.
+ * If a retry is attempted on an already-used token, records a security reuse event that invalidates active sessions.
+ */
+export function validateAndConsumeAdminMagicToken(
+  token?: string | null,
+  email?: string | null,
+  options?: { dryRunAuditOnly?: boolean }
+): {
+  valid: boolean;
+  reason?: string;
+  record?: IssuedMagicTokenRecord;
+} {
+  const cleanEmail = (email || '').trim().toLowerCase();
+  if (!token || !token.startsWith('mlk_')) {
+    return { valid: false, reason: 'missing_or_malformed_token' };
+  }
+  if (isMagicLoginTokenUsed(token)) {
+    if (!options?.dryRunAuditOnly) {
+      recordMagicTokenReuseAttempt(token, cleanEmail);
+    }
+    return { valid: false, reason: 'already_used' };
+  }
+
+  const issuedMap = getIssuedMagicLoginTokens();
+  const storedRecord =
+    memoryIssuedMagicTokens.get(token) || issuedMap[token] || undefined;
+
+  if (storedRecord && storedRecord.email.toLowerCase() !== cleanEmail) {
+    return { valid: false, reason: 'email_mismatch' };
+  }
+
+  const currentSessionId = getCurrentSessionInstanceId();
+
+  // Strictly mark token as 'usado' in localStorage and bind it to the active admin session instance
+  markMagicLoginTokenUsed(token, cleanEmail, currentSessionId);
+  setConsumedAdminSessionToken(token);
+
+  notifyAdminTokenSecurityEvent({
+    type: 'TOKEN_CONSUMED',
+    token,
+    email: cleanEmail || undefined,
+    sessionInstanceId: currentSessionId,
+    timestamp: new Date().toISOString(),
+  });
+
+  const updatedIssuedMap = getIssuedMagicLoginTokens();
+  return {
+    valid: true,
+    record: updatedIssuedMap[token] || storedRecord,
+  };
+}
+
+/**
  * Builds a single-use Magic Link URL for exclusive Administrator login via EmailJS
+ * and registers the token in memory and localStorage with status 'pendiente'.
  */
 export function buildAdminMagicLoginUrl(params: {
   email: string;
@@ -194,16 +693,33 @@ export function buildAdminMagicLoginUrl(params: {
   role?: string;
 }): { magicUrl: string; token: string } {
   const baseUrl = getAppBaseUrl();
+  const cleanEmail = params.email.trim().toLowerCase();
+  const cleanName = params.fullName.trim() || 'Administrador BWOS';
+  const cleanCompany =
+    params.companyName.trim() || 'BWOS | Sitios Web & Merch';
+  const cleanRole =
+    params.role?.trim() || 'Administrador de Admisiones B2B';
+
   const token = generateAdminMagicLoginToken();
+  saveIssuedMagicLoginToken({
+    token,
+    email: cleanEmail,
+    fullName: cleanName,
+    companyName: cleanCompany,
+    role: cleanRole,
+    createdAt: new Date().toISOString(),
+    status: 'pendiente',
+    used: false,
+  });
+
   const search = new URLSearchParams();
   search.set('admin_action', 'magic_login');
   search.set('token', token);
-  search.set('email', params.email.trim().toLowerCase());
-  search.set('name', params.fullName.trim());
-  search.set('company', params.companyName.trim());
-  if (params.role) {
-    search.set('role', params.role.trim());
-  }
+  search.set('email', cleanEmail);
+  search.set('name', cleanName);
+  search.set('company', cleanCompany);
+  search.set('role', cleanRole);
+
   return {
     magicUrl: `${baseUrl}/?${search.toString()}`,
     token,
@@ -426,6 +942,49 @@ export async function sendB2BEmailNotification(
   saveEmailLogs(updatedLogs);
 
   return logEntry;
+}
+
+/**
+ * Generates a single-use Magic Link token (stored in memory + localStorage) and dispatches it via EmailJS
+ * exclusively to the introduced admin email (clientesbinweb@gmail.com or somosbwos@gmail.com).
+ */
+export async function dispatchAdminMagicLinkEmail(params: {
+  email: string;
+  fullName: string;
+  companyName: string;
+  role?: string;
+}): Promise<{ magicUrl: string; token: string; logEntry: EmailLogItem }> {
+  const cleanEmail = params.email.trim().toLowerCase();
+  const cleanName = params.fullName.trim() || 'Administrador BWOS';
+  const cleanCompany =
+    params.companyName.trim() || 'BWOS | Sitios Web & Merch';
+  const cleanRole =
+    params.role?.trim() || 'Administrador de Admisiones B2B';
+
+  const { magicUrl, token } = buildAdminMagicLoginUrl({
+    email: cleanEmail,
+    fullName: cleanName,
+    companyName: cleanCompany,
+    role: cleanRole,
+  });
+
+  const logEntry = await sendB2BEmailNotification({
+    type: 'admin_magic_link',
+    toEmail: cleanEmail,
+    toName: cleanName,
+    fromName: 'Seguridad & Admisiones BWOS Conectar B2B',
+    fromEmail: ADMIN_EMAIL,
+    companyName: cleanCompany,
+    subject: `[LINK MÁGICO DE ÚNICO USO - DASHBOARD ADMIN] Acceso para ${cleanName} (${cleanCompany})`,
+    message: `Hola ${cleanName} (${cleanCompany}), se ha solicitado el ingreso al Dashboard de Administración de BWOS Conectar B2B con tu cuenta (${cleanEmail}).\n\n🔐 Haz clic en tu Link Mágico de único uso para abrir el Dashboard de Administración:\n${magicUrl}\n\nEste enlace es personal, intransferible y caduca automáticamente tras su primer uso.`,
+    jitsiRoomUrl: magicUrl,
+    approvalUrl: magicUrl,
+    oneTimeToken: token,
+    tokenStatus: 'pendiente',
+    ccAdminEmail: cleanEmail,
+  });
+
+  return { magicUrl, token, logEntry };
 }
 
 /**

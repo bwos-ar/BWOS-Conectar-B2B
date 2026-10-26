@@ -1,52 +1,100 @@
-# Plan de Implementación: Autenticación de Administradores por Link Mágico de Único Uso y Privacidad en el Frontend Público
+# Verificación de Token de Sesión entre Pestañas y Protección Estricta del Dashboard Administrador
 
-## 1. Objetivo
-Garantizar que el acceso al **Dashboard de Administración** para las cuentas autorizadas (`clientesbinweb@gmail.com` y `somosbwos@gmail.com`) sea 100% privado y seguro:
-1. **Privacidad total en el Frontend Público**: Eliminar cualquier botón de acceso rápido (*"Acceso Rápido Admin"*), placeholder, tarjeta informativa o mensaje de error que exponga los correos de los administradores en la pantalla pública de ingreso, mostrando únicamente referencias genéricas como **"Administración General BWOS"**.
-2. **Autenticación por Link Mágico de Único Uso vía EmailJS**: Al completar **Nombre y Apellido, Empresa y Correo Electrónico** con cualquiera de los dos correos administradores en la pestaña de ingreso, **no** se abrirá la sesión directamente en el navegador; en su lugar, el sistema generará un **Token Mágico de único uso (`mlk_...`)** y enviará por **EmailJS** un enlace exclusivo al buzón de ese administrador para que solo el propietario real del correo pueda abrir el **Dashboard de Administración**.
+Este plan incorpora la validación continua en el ciclo de vida principal de la aplicación para detectar si un token de sesión de Link Mágico almacenado en `localStorage` ya fue consumido o reclamado por otra sesión activa, cerrando de inmediato la sesión y bloqueando el acceso en la pantalla de invitación. Asimismo, refactoriza la consola de administración para que todo su renderizado dependa tanto del flag `isAdmin` como del token de sesión verificado en el estado central, y nunca únicamente del correo electrónico.
 
----
+## Revisión de Usuario y Decisiones Confirmadas
 
-## 2. Flujo de Experiencia de Usuario y Seguridad
+> [!IMPORTANT]
+> Se aplicarán las siguientes decisiones confirmadas para garantizar que ningún token de Link Mágico pueda ser reutilizado ni compartido entre sesiones:
 
-### A. Limpieza y Privacidad en la Pantalla Pública (`InvitationGateView.tsx` y `MvpDevelopmentBanner.tsx`)
-- **Eliminación de botones de autocompletado**: Se remueve por completo la barra `"Acceso Rápido Admin: Cargar somosbwos@gmail.com / Cargar clientesbinweb@gmail.com"`.
-- **Ocultación de correos de administración**:
-  - En las tarjetas superiores (*"OK Obligatorio"*), textos de ayuda, placeholders (`Ej. nombre@tuempresa.com`) y mensajes de estado o espera, se reemplaza cualquier mención a `clientesbinweb@gmail.com` o `somosbwos@gmail.com` por **"Administración General BWOS"**.
-  - Los correos de administración tampoco se exponen en los textos enviados al solicitante externo cuando pide invitación.
-
-### B. Generación y Envío del Link Mágico de Único Uso (`emailjsService.ts`)
-- **Tokens Mágicos de único uso (`mlk_...`)**:
-  - Se agregan funciones dedicadas en `emailjsService.ts`:
-    - `generateAdminMagicLoginToken(email: string): string`
-    - `isMagicLoginTokenUsed(token: string): boolean`
-    - `markMagicLoginTokenUsed(token: string): void`
-    - `buildAdminMagicLoginUrl(params: { email: string; name: string; company: string }): { magicUrl: string; token: string }`
-  - El enlace generado tendrá el formato:
-    `https://<app-url>/?admin_action=magic_login&token=mlk_...&email=...&name=...&company=...`
-- **Envío por EmailJS compatible con la plantilla actual**:
-  - Cuando `clientesbinweb@gmail.com` o `somosbwos@gmail.com` solicita ingresar indicando su **Nombre y Apellido, Empresa y Correo Electrónico**, se envía un correo mediante `sendB2BEmailNotification` exclusivamente a esa dirección de administrador.
-  - El **Link Mágico de único uso** se inyecta en `{{Aceptar a quien solicitó invitación}}`, `{{approval_url}}`, `{{jitsi_url}}` y dentro del cuerpo `{{message}}` para que sea clicable de inmediato desde su bandeja de entrada.
-  - En pantalla, el formulario muestra un aviso de seguridad: *"Por seguridad, hemos enviado un Link Mágico de acceso único a tu correo electrónico. Haz clic en el enlace recibido en tu bandeja de entrada para abrir el Dashboard de Administración."*
-
-### C. Validación del Link Mágico al Abrir la URL (`App.tsx`)
-- Al detectar `?admin_action=magic_login&token=mlk_...&email=...` en la URL:
-  1. Verifica que el correo pertenezca a la lista de administradores autorizados (`isAdminEmail(email)`).
-  2. Verifica que el `token` (`mlk_...`) sea válido y **no haya sido utilizado previamente** (`!isMagicLoginTokenUsed(token)`).
-  3. Marca inmediatamente el token como consumido (`markMagicLoginTokenUsed(token)`) para que no pueda reutilizarse si alguien copia el enlace.
-  4. Limpia los parámetros de la URL con `window.history.replaceState` para no dejar el token visible en la barra de direcciones.
-  5. Inicia la sesión administrativa con el **Nombre y Apellido, Empresa y Correo Electrónico** recibidos, abre directamente la vista `admin-dashboard` y muestra el banner de confirmación de sesión iniciada mediante Link Mágico.
-  6. Si el token ya fue usado o es inválido, bloquea el ingreso y muestra una alerta indicando que el Link Mágico expiró o ya fue utilizado.
+- **Decisión Confirmada 1 (Sincronización de Persistencia)**: La validación de uso único y titularidad de sesión se realizará mediante persistencia robusta en `localStorage` combinada con `sessionStorage` (ID único por pestaña/sesión) y sincronización en vivo entre pestañas (`storage` event + `BroadcastChannel`).
+- **Decisión Confirmada 2 (Acción ante Reintento o Fallo de Validación)**: Si se detecta un reintento de uso del mismo token por otra sesión, o si `isAdmin` o el token de sesión verificado son inválidos, se cerrará la sesión inmediatamente y se redirigirá al usuario a la pantalla de bloqueo de invitación (`InvitationGateView`) con una notificación de seguridad.
 
 ---
 
-## 3. Archivos a Modificar
-1. **`/src/services/emailjsService.ts`**:
-   - Implementar el registro de tokens mágicos de único uso (`bwos_used_magic_login_tokens_v1`), `buildAdminMagicLoginUrl`, y soporte para el tipo de notificación `admin_magic_link`.
-2. **`/src/components/InvitationGateView.tsx`**:
-   - Eliminar los botones de acceso rápido y todas las menciones públicas a `clientesbinweb@gmail.com` y `somosbwos@gmail.com`.
-   - Reemplazar el ingreso directo de administradores por el disparo del **Link Mágico de único uso vía EmailJS** y la vista de confirmación de envío al correo.
-3. **`/src/components/MvpDevelopmentBanner.tsx`**:
-   - Verificar y ocultar cualquier referencia visible a los correos de administración en las vistas públicas.
-4. **`/src/App.tsx`**:
-   - Procesar `admin_action === 'magic_login'` validando el token de único uso, registrando los datos del administrador (**Nombre y Apellido, Empresa y Correo Electrónico**) y redirigiendo al **Dashboard de Administración**.
+## 1. Descripción General y Concepto Central
+
+- **Qué hace**:
+  1. Asigna un identificador único de instancia de pestaña (`sessionInstanceId` en `sessionStorage`) al consumir un Link Mágico por primera vez y vincula ese `sessionInstanceId` al registro del token `'usado'` en `localStorage`.
+  2. Añade una verificación continua en el `useEffect` principal (al montar, al cambiar de vista, al escuchar eventos `storage` / `BroadcastChannel` y al recuperar el foco de la ventana) que comprueba si el token almacenado fue reclamado o reintentado desde otra sesión o si fue invalidado; de ser así, revoca la sesión de inmediato.
+  3. Refactoriza la vista del Dashboard Administrador para exigir simultáneamente `isAdmin === true` y un `verifiedSessionToken` válido proveniente del estado de la aplicación principal antes de permitir el renderizado de la consola.
+- **Audiencia Objetivo**: Administradores autorizados de BWOS Conectar B2B (`clientesbinweb@gmail.com` y `somosbwos@gmail.com`).
+- **Valor Principal**: Impide que un Link Mágico interceptado o abierto nuevamente en otra ventana/sesión mantenga o duplique el acceso administrativo, protegiendo las aprobaciones de invitaciones y registros de EmailJS.
+
+---
+
+## 2. Experiencia de Usuario y Diseño Visual
+
+- **Flujos Clave de Usuario**:
+  1. **Consumo Inicial del Link Mágico**: Cuando el administrador abre el enlace único `?admin_action=magic_login&token=mlk_...`, el sistema verifica que el token esté en estado `'pendiente'`, lo marca como `'usado'` en `localStorage` vinculándolo al `sessionInstanceId` de la pestaña actual y guarda el token verificado en el estado de la aplicación.
+  2. **Detección de Reintento o Uso en Otra Sesión**: Si otra pestaña o ventana intenta usar el mismo token `mlk_...` (o si se detecta una discrepancia de `sessionInstanceId` o marca de reintento `reusedAttemptAt` en `localStorage`), el `useEffect` principal dispara la revocación inmediata: limpia las credenciales de sesión, establece `isAdmin = false` y `hasInvitationAccess = false`, y devuelve la vista a la pantalla de solicitud de invitación mostrando una alerta clara.
+  3. **Protección de Renderizado del Dashboard**: En el contenedor principal y dentro de la vista del Dashboard Administrador, una guarda de doble capa verifica `isAdmin === true` y `Boolean(verifiedSessionToken)` validado contra el registro de sesión activa antes de montar cualquier métrica, tabla de solicitudes o bitácora de EmailJS.
+- **Identidad Visual y Tema**:
+  - *Dirección Estética*: Consola ejecutiva B2B sobria y de alta densidad informativa, manteniendo la paleta institucional oscura (`#161f30`) en el cabezal administrativo y superficies neutras limpias (`#f8fafc` / `#ffffff`) con bordes de 1px.
+  - *Tipografía y Jerarquía*: Encabezados claros con numerales tabulares (`tabular-nums`) y fuentes monoespaciadas (`font-mono`) para identificadores de token y marcas de tiempo de auditoría.
+  - *Disciplina de Metadatos*: Los estados de verificación del token de sesión (`Token de sesión verificado · Estado: usado · Sesión única activa`) se presentan como texto limpio con separadores tipográficos (`·`).
+
+---
+
+## 3. Decisiones de Producto y Compromisos Técnicos
+
+- **Decisión 1: Vinculación de Token a Instancia de Sesión (`sessionStorage` + `localStorage` + `BroadcastChannel`)**
+  - *Enfoque Elegido*: Cada pestaña genera un `sessionInstanceId` en `sessionStorage` (que no se comparte cuando se abre un enlace en una nueva pestaña independiente). Al consumir un token mágico, el registro en `localStorage` guarda `consumedBySessionId: sessionInstanceId`. Si otra pestaña intenta consumir el mismo token o intenta leer el token almacenado con un `sessionInstanceId` distinto, se registra la colisión en `localStorage` y se emite un evento por `BroadcastChannel` y `storage` que cierra inmediatamente la vista administrativa.
+  - *Por qué*: Permite distinguir con precisión entre una recarga legítima de la misma pestaña y un intento de reutilización o apertura del token en otra sesión del navegador sin depender de infraestructura externa.
+- **Decisión 2: Guardia de Renderizado de Doble Capa (`App` + `AdminDashboardView`)**
+  - *Enfoque Elegido*: En lugar de confiar únicamente en el correo almacenado (`sessionEmail`), tanto el componente raíz como la vista del Dashboard validan explícitamente `isAdmin && isSessionTokenActiveAndValid(verifiedSessionToken, sessionEmail)`. Si cualquiera de las condiciones falla, el componente no se renderiza y ejecuta el cierre de sesión hacia la pantalla de invitación.
+  - *Por qué*: Garantiza defensa en profundidad frente a manipulaciones manuales de `localStorage` o cambios de estado parciales.
+
+---
+
+## 4. Arquitectura Técnica y Estrategia de Datos
+
+### Diagrama de Arquitectura y Verificación de Sesión
+
+```
+┌────────────────────────────────────────────────────────────────────────────┐
+│                   Persistencia Robusta & Sincronización                    │
+│  • localStorage (Tokens emitidos/usados + consumedBySessionId + colisiones)│
+│  • sessionStorage (sessionInstanceId único por pestaña/sesión)             │
+│  • BroadcastChannel ('bwos_admin_token_guard') + Window 'storage' Event    │
+└───────────────────┬────────────────────────────────────────┬───────────────┘
+                    │                                        │
+                    ▼                                        ▼
+┌─────────────────────────────────────────┐  ┌───────────────────────────────┐
+│     useEffect Principal (App.tsx)       │  │  Interceptor URL magic_login  │
+│  • Valida verifiedSessionToken activo   │  │  • Consume token 1 sola vez   │
+│  • Detecta si otra sesión usó el token  │  │  • Si ya está 'usado', marca  │
+│  • Si detecta reintento o token inválido│  │    reintento y emite alerta   │
+│    -> Cierra sesión y bloquea en Gate   │  │    a todas las pestañas       │
+└───────────────────┬─────────────────────┘  └───────────────┬───────────────┘
+                    │                                        │
+                    └───────────────────┬────────────────────┘
+                                        ▼
+┌────────────────────────────────────────────────────────────────────────────┐
+│           Guardia de Acceso en Estado Central (App.tsx)                    │
+│   Condición: isAdmin === true && Boolean(verifiedSessionToken)             │
+│   Si es falso -> Renderiza exclusivamente InvitationGateView               │
+└───────────────────────────────────────┬────────────────────────────────────┘
+                                        │
+                                        ▼
+┌────────────────────────────────────────────────────────────────────────────┐
+│                AdminDashboardView (Protección Refactorizada)               │
+│   • Recibe isAdmin + verifiedSessionToken desde el estado de App.tsx       │
+│   • Bloquea renderizado si !isAdmin || !verifiedSessionToken               │
+│   • Dispara onInvalidSessionDetected() para cerrar vista de inmediato      │
+└────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Modelo de Datos y Mapeo de Interacciones
+
+- **Entidad de Sesión y Token (`UsedMagicTokenPersistenceEntry`)**:
+  - `token`: Identificador único `mlk_...`
+  - `status`: `'usado'`
+  - `usedAt`: Marca de tiempo ISO del primer consumo
+  - `email`: Correo administrador autenticado
+  - `consumedBySessionId`: ID único de la sesión que consumió el token legítimamente
+  - `reusedAttemptDetected`: Booleano que se activa si cualquier petición posterior intenta volver a usar el mismo token
+  - `reusedAttemptAt`: Marca de tiempo del intento de reutilización
+- **Flujo Reactivo ante Reintento**:
+  - Cuando se intenta usar un token ya marcado como `'usado'` (ya sea por URL `?admin_action=magic_login&token=...` o mediante el verificador de bloqueo), el servicio marca `reusedAttemptDetected = true` en el registro del token y notifica por `BroadcastChannel` y `localStorage`.
+  - El `useEffect` principal escucha este cambio en tiempo real, ejecuta la función de revocación de sesión (`handleLockToInvitationGate`), limpia el estado administrativo (`isAdmin = false`, `verifiedSessionToken = null`, `hasInvitationAccess = false`) y bloquea la aplicación en la pantalla de invitación.

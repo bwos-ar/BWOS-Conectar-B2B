@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Bar,
   BarChart,
@@ -28,17 +28,29 @@ import {
   buildWeeklyMetricsEmailPayload,
   generateOneTimeApprovalToken,
   getCompanyCorporateEmail,
+  getCurrentSessionInstanceId,
   getEmailJSConfig,
+  getIssuedMagicLoginTokens,
   getNextWeeklyReportDate,
+  getUsedMagicLoginTokens,
   isApprovalTokenUsed,
   isEmailJSConfigured,
+  isMagicLoginTokenUsed,
+  recordMagicTokenReuseAttempt,
   saveEmailJSConfig,
+  subscribeAdminTokenSecurityEvents,
   upsertAccessRequest,
+  validateActiveAdminSessionTokenState,
+  validateAndConsumeAdminMagicToken,
+  verifyAdminDashboardSessionToken,
 } from '../services/emailjsService';
 import { B2B_SECTOR_OPTIONS } from './MultiSectorSelector';
 
 interface AdminDashboardViewProps {
   isAdmin: boolean;
+  verifiedSessionToken?: string | null;
+  consumedMagicToken?: string | null;
+  onInvalidSessionDetected?: (reason: string) => void;
   adminUser?: {
     fullName: string;
     companyName: string;
@@ -76,6 +88,9 @@ const BAR_COLORS = ['#004ac6', '#047857', '#2563eb', '#0d9488'];
 
 export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
   isAdmin,
+  verifiedSessionToken,
+  consumedMagicToken,
+  onInvalidSessionDetected,
   adminUser,
   companies,
   meetings,
@@ -165,34 +180,27 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
     sentAt: string;
   } | null>(null);
 
-  // Security guard: Exclusive to clientesbinweb@gmail.com
-  if (!isAdmin) {
-    return (
-      <section className="w-full max-w-[960px] mx-auto px-4 py-16">
-        <div className="bg-surface-container-lowest rounded-2xl border border-error/40 p-8 text-center flex flex-col items-center gap-4 shadow-sm">
-          <div className="w-14 h-14 rounded-2xl bg-error-container text-error flex items-center justify-center">
-            <span className="material-symbols-outlined text-[32px]">
-              gpp_bad
-            </span>
-          </div>
-          <h2 className="font-headline-md text-on-surface font-extrabold">
-            Vista Exclusiva del Administrador ({ADMIN_EMAIL})
-          </h2>
-          <p className="font-body-md text-on-surface-variant max-w-md">
-            Solo la cuenta administradora autorizada tiene acceso a la gestión
-            de solicitudes, historial de EmailJS y métricas de uso del sistema.
-          </p>
-          <button
-            type="button"
-            onClick={onNavigateToLobby}
-            className="px-5 py-2.5 rounded-xl bg-primary text-on-primary font-title-md cursor-pointer"
-          >
-            Volver al Lobby Virtual
-          </button>
-        </div>
-      </section>
-    );
-  }
+  // Strict Magic Token Retry Verification State
+  const [retryCheckFeedback, setRetryCheckFeedback] = useState<{
+    token: string;
+    blocked: boolean;
+    message: string;
+    checkedAt: string;
+  } | null>(null);
+
+  // Strict Session Token Validation from App.tsx verified state (never validated by email alone)
+  const activeSessionToken = verifiedSessionToken ?? consumedMagicToken ?? null;
+  const currentSessionInstanceId = getCurrentSessionInstanceId();
+  const tokenValidationState = validateActiveAdminSessionTokenState(
+    adminUser?.email,
+    activeSessionToken
+  );
+  const isStrictTokenVerified = Boolean(
+    isAdmin &&
+      activeSessionToken &&
+      tokenValidationState.valid &&
+      verifyAdminDashboardSessionToken(adminUser?.email, activeSessionToken)
+  );
 
   // System Usage & Access Request Metrics derived from App.tsx state
   const systemMetrics = useMemo(() => {
@@ -530,6 +538,96 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
 
   const emailConfigured = isEmailJSConfigured(emailConfig);
 
+  // Persistent Magic Link token audit from localStorage
+  const magicTokensAudit = useMemo(() => {
+    const issuedMap = getIssuedMagicLoginTokens();
+    const usedMap = getUsedMagicLoginTokens();
+    const records = Object.values(issuedMap).sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+    const usedCount = Object.keys(usedMap).length;
+    return {
+      records,
+      usedCount,
+      totalIssued: records.length,
+    };
+  }, [emailLogs, activeSessionToken, retryCheckFeedback]);
+
+  const handleSimulateUsedTokenRetry = (tokenToTest?: string | null) => {
+    const targetToken = tokenToTest || activeSessionToken || '';
+    const attempt = validateAndConsumeAdminMagicToken(
+      targetToken,
+      adminUser?.email,
+      { dryRunAuditOnly: true }
+    );
+    setRetryCheckFeedback({
+      token: targetToken || 'sin-token',
+      blocked: !attempt.valid,
+      message: !attempt.valid
+        ? `Auditoría OK: el token ${targetToken} figura como 'usado' en localStorage (sesión ${currentSessionInstanceId.slice(0, 14)}) y rechaza cualquier segundo uso (${attempt.reason}).`
+        : 'Token validado por primera vez y marcado como usado.',
+      checkedAt: new Date().toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      }),
+    });
+  };
+
+  const handleSimulateCrossSessionReuseClosure = () => {
+    if (!activeSessionToken) {
+      onInvalidSessionDetected?.(
+        'No existe un token de sesión verificado en el estado de App.tsx.'
+      );
+      return;
+    }
+    recordMagicTokenReuseAttempt(activeSessionToken, adminUser?.email);
+    onInvalidSessionDetected?.(
+      `Se detectó un reintento de uso del token ${activeSessionToken.slice(0, 14)}... en otra sesión. Vista cerrada inmediatamente.`
+    );
+  };
+
+  // Continuous enforcement layer inside AdminDashboardView:
+  // Immediately triggers session closure if isAdmin is false, verifiedSessionToken is missing/invalid,
+  // or a token reuse attempt is detected in localStorage / BroadcastChannel.
+  useEffect(() => {
+    if (!isAdmin || !isStrictTokenVerified) {
+      onInvalidSessionDetected?.(
+        !isAdmin
+          ? 'Intento de acceso a AdminDashboardView con isAdmin=false.'
+          : `Token de sesión no válido (${tokenValidationState.reason || 'unverified'}).`
+      );
+      return;
+    }
+
+    const unsubscribe = subscribeAdminTokenSecurityEvents((secEvent) => {
+      if (
+        secEvent.type === 'TOKEN_REUSE_DETECTED' &&
+        (!activeSessionToken || secEvent.token === activeSessionToken)
+      ) {
+        onInvalidSessionDetected?.(
+          `Reintento detectado para el token ${secEvent.token.slice(0, 14)}... Vista cerrada inmediatamente.`
+        );
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [
+    isAdmin,
+    isStrictTokenVerified,
+    activeSessionToken,
+    tokenValidationState.reason,
+    onInvalidSessionDetected,
+  ]);
+
+  // Additional protection layer: never render AdminDashboardView if isAdmin is false or session token is not strictly verified
+  if (!isAdmin || !isStrictTokenVerified) {
+    return null;
+  }
+
   return (
     <section
       aria-label="Dashboard de Administración en 3 Pestañas"
@@ -584,6 +682,30 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
 
             <button
               type="button"
+              onClick={() => handleSimulateUsedTokenRetry(activeSessionToken)}
+              className="px-3.5 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-400/30 font-label-md font-bold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
+              title="Auditar que el Link Mágico actual está marcado como 'usado' en localStorage"
+            >
+              <span className="material-symbols-outlined text-[18px]">
+                lock_person
+              </span>
+              <span>Verificar Bloqueo Token Usado</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleSimulateCrossSessionReuseClosure}
+              className="px-3.5 py-2 rounded-xl bg-rose-500/25 hover:bg-rose-600 text-rose-200 hover:text-white border border-rose-400/40 font-label-md font-bold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
+              title="Simular un reintento de uso del mismo token por otra sesión para verificar el cierre inmediato de la vista"
+            >
+              <span className="material-symbols-outlined text-[18px]">
+                gpp_bad
+              </span>
+              <span>Simular Reintento Otra Sesión</span>
+            </button>
+
+            <button
+              type="button"
               onClick={onTriggerIncomingCall}
               className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white font-label-md font-bold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
             >
@@ -614,6 +736,46 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
               </span>
               <span>Reiniciar Demo</span>
             </button>
+          </div>
+        </div>
+
+        {/* STRICT MAGIC LINK SINGLE-USE VERIFICATION BAR (localStorage) */}
+        <div className="bg-surface-container-lowest rounded-2xl border border-surface-container-high p-4 shadow-2xs flex flex-col gap-3">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+            <div className="flex items-start sm:items-center gap-2.5 flex-wrap">
+              <span className="material-symbols-outlined text-[#047857] text-[20px]">
+                encrypted
+              </span>
+              <span className="font-label-md text-on-surface font-bold">
+                Verificación Estricta de Link Mágico (localStorage):
+              </span>
+              <span className="font-mono text-[12px] text-primary bg-surface-container-low px-2.5 py-0.5 rounded border border-outline-variant/40">
+                {activeSessionToken || 'mlk_verified'}
+              </span>
+              <span className="font-label-sm text-[#047857] font-bold">
+                · Estado en localStorage: &apos;usado&apos; (Reintentos
+                bloqueados)
+              </span>
+              <span className="font-body-sm text-on-surface-variant">
+                · Sesión vinculada:{' '}
+                <code>{currentSessionInstanceId.slice(0, 14)}</code>
+              </span>
+              <span className="font-body-sm text-on-surface-variant tabular-nums">
+                · Total tokens consumidos: {magicTokensAudit.usedCount}
+              </span>
+            </div>
+
+            {retryCheckFeedback && (
+              <div className="flex items-center gap-2 text-[12px] bg-[#ECFDF5] text-[#064E3B] px-3 py-1.5 rounded-lg border border-[#047857]/30">
+                <span className="material-symbols-outlined text-[16px] text-[#047857]">
+                  gpp_good
+                </span>
+                <span>
+                  <strong>[{retryCheckFeedback.checkedAt}]</strong>{' '}
+                  {retryCheckFeedback.message}
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -1386,6 +1548,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
               {(
                 [
                   { id: 'all', label: `Todos (${emailLogs.length})` },
+                  { id: 'admin_magic_link', label: 'Links Mágicos Admin' },
                   { id: 'access_request', label: 'Solicitudes al Admin' },
                   { id: 'access_approved', label: 'OK de Ingreso' },
                   { id: 'connection_invite', label: 'Invitaciones Conexión' },
@@ -1427,82 +1590,141 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
               </div>
             ) : (
               <div className="flex flex-col gap-3">
-                {filteredEmailLogs.map((log) => (
-                  <article
-                    key={log.id}
-                    className="p-4 rounded-xl bg-surface border border-surface-container-high flex flex-col gap-2"
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-label-sm font-bold text-primary">
-                          {log.type === 'connection_invite'
-                            ? 'Invitación de Conexión'
-                            : log.type === 'meeting_request'
-                            ? 'Solicitud de Reunión'
-                            : log.type === 'access_approved'
-                            ? 'OK de Ingreso Otorgado'
-                            : log.type === 'weekly_report'
-                            ? 'Reporte Semanal de Métricas'
-                            : 'Solicitud de Acceso al Admin'}
-                        </span>
-                        <span className="text-on-surface-variant font-body-sm">
-                          ·
-                        </span>
-                        <span
-                          className={`font-label-sm font-bold ${
-                            log.deliveryMode === 'emailjs_live'
-                              ? 'text-[#047857]'
-                              : 'text-amber-700'
-                          }`}
-                        >
-                          {log.deliveryMode === 'emailjs_live'
-                            ? 'Enviado EmailJS API'
-                            : 'Simulado / Bandeja Piloto'}
+                {filteredEmailLogs.map((log) => {
+                  const isMagicLogUsed =
+                    log.type === 'admin_magic_link' &&
+                    (log.tokenStatus === 'usado' ||
+                      isMagicLoginTokenUsed(log.oneTimeToken));
+
+                  return (
+                    <article
+                      key={log.id}
+                      className="p-4 rounded-xl bg-surface border border-surface-container-high flex flex-col gap-2"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-label-sm font-bold text-primary">
+                            {log.type === 'connection_invite'
+                              ? 'Invitación de Conexión'
+                              : log.type === 'meeting_request'
+                              ? 'Solicitud de Reunión'
+                              : log.type === 'access_approved'
+                              ? 'OK de Ingreso Otorgado'
+                              : log.type === 'weekly_report'
+                              ? 'Reporte Semanal de Métricas'
+                              : log.type === 'admin_magic_link'
+                              ? 'Link Mágico de Acceso Admin'
+                              : 'Solicitud de Acceso al Admin'}
+                          </span>
+                          <span className="text-on-surface-variant font-body-sm">
+                            ·
+                          </span>
+                          <span
+                            className={`font-label-sm font-bold ${
+                              log.deliveryMode === 'emailjs_live'
+                                ? 'text-[#047857]'
+                                : 'text-amber-700'
+                            }`}
+                          >
+                            {log.deliveryMode === 'emailjs_live'
+                              ? 'Enviado EmailJS API'
+                              : 'Simulado / Bandeja Piloto'}
+                          </span>
+                          {log.type === 'admin_magic_link' && (
+                            <>
+                              <span className="text-on-surface-variant font-body-sm">
+                                ·
+                              </span>
+                              <span
+                                className={`font-label-sm font-bold ${
+                                  isMagicLogUsed
+                                    ? 'text-error'
+                                    : 'text-[#047857]'
+                                }`}
+                              >
+                                {isMagicLogUsed
+                                  ? "Estado Token en localStorage: 'usado' (Reintento Bloqueado)"
+                                  : "Estado Token en localStorage: 'pendiente'"}
+                              </span>
+                            </>
+                          )}
+                        </div>
+
+                        <span className="font-label-sm text-on-surface-variant tabular-nums">
+                          {new Date(log.sentAt).toLocaleString([], {
+                            dateStyle: 'short',
+                            timeStyle: 'short',
+                          })}
                         </span>
                       </div>
 
-                      <span className="font-label-sm text-on-surface-variant tabular-nums">
-                        {new Date(log.sentAt).toLocaleString([], {
-                          dateStyle: 'short',
-                          timeStyle: 'short',
-                        })}
-                      </span>
-                    </div>
+                      <p className="font-title-md text-on-surface font-bold">
+                        {log.subject}
+                      </p>
+                      <p className="font-body-sm text-on-surface-variant whitespace-pre-line">
+                        {log.message}
+                      </p>
 
-                    <p className="font-title-md text-on-surface font-bold">
-                      {log.subject}
-                    </p>
-                    <p className="font-body-sm text-on-surface-variant whitespace-pre-line">
-                      {log.message}
-                    </p>
+                      {log.type === 'admin_magic_link' && log.approvalUrl && (
+                        <div className="mt-1 p-2.5 rounded-lg bg-surface-container-low border border-surface-container-high flex flex-wrap items-center justify-between gap-2 text-[12px]">
+                          <span className="font-label-sm text-on-surface font-bold">
+                            Token Único ({log.oneTimeToken || 'mlk'}):
+                          </span>
+                          {isMagicLogUsed ? (
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-mono text-on-surface-variant line-through truncate max-w-md">
+                                {log.approvalUrl}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleSimulateUsedTokenRetry(log.oneTimeToken)
+                                }
+                                className="px-2.5 py-1 rounded bg-error/10 text-error font-label-sm font-bold cursor-pointer"
+                              >
+                                Token &apos;usado&apos; · Probar Reintento
+                                (Bloqueado)
+                              </button>
+                            </div>
+                          ) : (
+                            <a
+                              href={log.approvalUrl}
+                              className="text-primary hover:underline font-mono truncate max-w-xl"
+                            >
+                              {log.approvalUrl}
+                            </a>
+                          )}
+                        </div>
+                      )}
 
-                    {log.type === 'access_request' && log.approvalUrl && (
-                      <div className="mt-1 p-2.5 rounded-lg bg-surface-container-low border border-surface-container-high flex flex-wrap items-center justify-between gap-2 text-[12px]">
-                        <span className="font-label-sm text-on-surface font-bold">
-                          {'{{Aceptar a quien solicitó invitación}}'} (Link de
-                          único uso):
+                      {log.type === 'access_request' && log.approvalUrl && (
+                        <div className="mt-1 p-2.5 rounded-lg bg-surface-container-low border border-surface-container-high flex flex-wrap items-center justify-between gap-2 text-[12px]">
+                          <span className="font-label-sm text-on-surface font-bold">
+                            {'{{Aceptar a quien solicitó invitación}}'} (Link de
+                            único uso):
+                          </span>
+                          <a
+                            href={log.approvalUrl}
+                            className="text-primary hover:underline font-mono truncate max-w-xl"
+                          >
+                            {log.approvalUrl}
+                          </a>
+                        </div>
+                      )}
+
+                      <div className="pt-2 border-t border-surface-container flex flex-wrap items-center justify-between gap-2 text-[11px] text-on-surface-variant">
+                        <span>
+                          <strong>Para:</strong> {log.toName} ({log.toEmail}) ·{' '}
+                          <strong>CC Admin:</strong>{' '}
+                          {log.ccAdminEmail || ADMIN_EMAIL}
                         </span>
-                        <a
-                          href={log.approvalUrl}
-                          className="text-primary hover:underline font-mono truncate max-w-xl"
-                        >
-                          {log.approvalUrl}
-                        </a>
+                        <span className="font-bold text-primary">
+                          {log.statusText}
+                        </span>
                       </div>
-                    )}
-
-                    <div className="pt-2 border-t border-surface-container flex flex-wrap items-center justify-between gap-2 text-[11px] text-on-surface-variant">
-                      <span>
-                        <strong>Para:</strong> {log.toName} ({log.toEmail}) ·{' '}
-                        <strong>CC Admin:</strong>{' '}
-                        {log.ccAdminEmail || ADMIN_EMAIL}
-                      </span>
-                      <span className="font-bold text-primary">
-                        {log.statusText}
-                      </span>
-                    </div>
-                  </article>
-                ))}
+                    </article>
+                  );
+                })}
               </div>
             )}
           </div>

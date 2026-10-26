@@ -8,7 +8,6 @@ import {
 import {
   AccessRequestItem,
   buildAdminApprovalUrl,
-  buildAdminMagicLoginUrl,
   buildAdminRejectUrl,
   findAccessRequestByEmail,
   generateOneTimeApprovalToken,
@@ -35,7 +34,7 @@ export interface InvitationRequestData {
 interface InvitationGateViewProps {
   accessRequests: AccessRequestItem[];
   onRefreshRequests: () => void;
-  onGrantAccess: (requestData: InvitationRequestData) => void;
+  onGrantAccess: (requestData: InvitationRequestData) => void | Promise<void>;
   onOpenLegalNotice: (section: string) => void;
   onResetDemo: () => void;
 }
@@ -87,26 +86,16 @@ export const InvitationGateView: React.FC<InvitationGateViewProps> = ({
       adminPreset?.role ||
       'Administrador de Admisiones B2B';
 
-    const { magicUrl, token } = buildAdminMagicLoginUrl({
-      email: cleanEmail,
+    await onGrantAccess({
       fullName: params.fullName.trim(),
       companyName: params.companyName.trim(),
+      email: cleanEmail,
+      corporateContact: cleanEmail,
       role: resolvedRole,
-    });
-
-    await sendB2BEmailNotification({
-      type: 'admin_magic_link',
-      toEmail: cleanEmail,
-      toName: params.fullName.trim(),
-      fromName: 'Seguridad & Admisiones BWOS Conectar B2B',
-      fromEmail: ADMIN_EMAIL,
-      companyName: params.companyName.trim(),
-      subject: `[LINK MÁGICO DE ÚNICO USO - DASHBOARD ADMIN] Acceso para ${params.fullName.trim()} (${params.companyName.trim()})`,
-      message: `Hola ${params.fullName.trim()} (${params.companyName.trim()}), se ha solicitado el ingreso al Dashboard de Administración de BWOS Conectar B2B con tu cuenta (${cleanEmail}).\n\n🔐 Haz clic en tu Link Mágico de único uso para abrir el Dashboard de Administración:\n${magicUrl}\n\nEste enlace es personal, intransferible y caduca automáticamente tras su primer uso.`,
-      jitsiRoomUrl: magicUrl,
-      approvalUrl: magicUrl,
-      oneTimeToken: token,
-      ccAdminEmail: cleanEmail,
+      sector: 'SaaS & Tecnología',
+      sectorsList: ['SaaS & Tecnología'],
+      requestedAt: new Date().toISOString(),
+      isAdmin: true,
     });
 
     onRefreshRequests();

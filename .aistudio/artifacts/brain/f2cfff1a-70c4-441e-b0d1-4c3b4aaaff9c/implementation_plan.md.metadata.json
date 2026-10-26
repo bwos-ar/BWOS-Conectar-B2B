@@ -1,6 +1,6 @@
 {
-  "summary":  "Plan de implementación para autenticar a los administradores (clientesbinweb@gmail.com y somosbwos@gmail.com) exclusivamente mediante un Link Mágico de único uso enviado por EmailJS y ocultar por completo las direcciones de correo de administración y botones de acceso rápido del frontend público.",
-  "updatedAt":  "2026-10-26T16:42:05.575466724Z",
+  "summary":  "Plan de implementación para validar en tiempo real el token de sesión del administrador entre pestañas mediante localStorage y eventos sincronizados, revocar la sesión ante reintentos de uso de token y blindar el renderizado del Dashboard Administrador en base al estado verificado de App.tsx.",
+  "updatedAt":  "2026-10-26T19:17:51.302192628Z",
   "requestFeedback":  true,
   "userFacing":  true
 }

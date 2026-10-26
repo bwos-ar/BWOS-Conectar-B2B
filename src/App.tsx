@@ -39,20 +39,29 @@ import {
   EmailNotificationPayload,
   WeeklyReportSchedule,
   buildWeeklyMetricsEmailPayload,
+  clearConsumedAdminSessionToken,
+  dispatchAdminMagicLinkEmail,
   findAccessRequestByEmail,
+   generateAdminMagicLoginToken,
   getAccessRequests,
   getCompanyCorporateEmail,
+  getConsumedAdminSessionToken,
+  getCurrentSessionInstanceId,
   getSavedEmailLogs,
   getWeeklyReportSchedule,
   isApprovalTokenUsed,
-  isMagicLoginTokenUsed,
   markApprovalTokenUsed,
   markMagicLoginTokenUsed,
   saveAccessRequests,
   saveEmailLogs,
   saveWeeklyReportSchedule,
   sendB2BEmailNotification,
+  setConsumedAdminSessionToken,
+  subscribeAdminTokenSecurityEvents,
   upsertAccessRequest,
+  validateActiveAdminSessionTokenState,
+  validateAndConsumeAdminMagicToken,
+  verifyAdminDashboardSessionToken,
 } from './services/emailjsService';
 
 type MainView =
@@ -67,6 +76,7 @@ type MainView =
 const STORAGE_KEYS = {
   INVITATION_GRANTED: 'bwos_b2b_invitation_granted_v2',
   ADMIN_EMAIL: 'bwos_b2b_admin_email_v2',
+  ADMIN_MAGIC_VERIFIED: 'bwos_b2b_admin_magic_verified_v1',
   PROFILE: 'bwos_b2b_user_profile_v1',
   COMPANIES: 'bwos_b2b_companies_v2',
   MEETINGS: 'bwos_b2b_meetings_v1',
@@ -90,7 +100,7 @@ export default function App() {
     () => getWeeklyReportSchedule()
   );
 
-  // Mandatory Invitation Gate State (Default false: requires Admin OK or Admin email)
+  // Mandatory Invitation Gate State (Default false: requires Admin OK or verified 'usado' Magic Link for Admin email)
   const [hasInvitationAccess, setHasInvitationAccess] = useState<boolean>(
     () => {
       try {
@@ -102,7 +112,17 @@ export default function App() {
           .trim()
           .toLowerCase();
         if (!granted || !storedEmail) return false;
-        if (isAdminEmail(storedEmail)) return true;
+        if (isAdminEmail(storedEmail)) {
+          const magicVerified =
+            localStorage.getItem(STORAGE_KEYS.ADMIN_MAGIC_VERIFIED) === 'true';
+          return (
+            magicVerified &&
+            verifyAdminDashboardSessionToken(
+              storedEmail,
+              getConsumedAdminSessionToken()
+            )
+          );
+        }
         const req = findAccessRequestByEmail(storedEmail);
         return Boolean(req && req.status === 'approved');
       } catch {
@@ -122,10 +142,25 @@ export default function App() {
     }
   });
 
-  // Admin Session State (True for clientesbinweb@gmail.com and somosbwos@gmail.com)
+  // Consumed Single-Use Magic Token for Current Admin Session
+  const [adminConsumedToken, setAdminConsumedToken] = useState<string | null>(
+    () => getConsumedAdminSessionToken()
+  );
+
+  // Admin Session State (True only when clientesbinweb@gmail.com or somosbwos@gmail.com authenticated via consumed 'usado' Magic Link)
   const [isAdmin, setIsAdmin] = useState<boolean>(() => {
     try {
-      return isAdminEmail(localStorage.getItem(STORAGE_KEYS.ADMIN_EMAIL));
+      const storedEmail = localStorage.getItem(STORAGE_KEYS.ADMIN_EMAIL);
+      const magicVerified =
+        localStorage.getItem(STORAGE_KEYS.ADMIN_MAGIC_VERIFIED) === 'true';
+      return Boolean(
+        isAdminEmail(storedEmail) &&
+          magicVerified &&
+          verifyAdminDashboardSessionToken(
+            storedEmail,
+            getConsumedAdminSessionToken()
+          )
+      );
     } catch {
       return false;
     }
@@ -796,9 +831,44 @@ export default function App() {
     );
   };
 
-  const handleGrantInvitationAccess = (reqData: InvitationRequestData) => {
+  const handleGrantInvitationAccess = async (
+    reqData: InvitationRequestData
+  ) => {
     const cleanReqEmail = reqData.email.trim().toLowerCase();
-    const adminGranted = isAdminEmail(cleanReqEmail);
+
+    // Intercept access attempts with clientesbinweb@gmail.com or somosbwos@gmail.com:
+    // Block conventional login and dispatch a single-use Magic Link via EmailJS
+    if (
+      isAdminEmail(cleanReqEmail) ||
+      cleanReqEmail === ADMIN_EMAIL.toLowerCase() ||
+      cleanReqEmail === SECONDARY_ADMIN_EMAIL.toLowerCase()
+    ) {
+      try {
+        localStorage.removeItem(STORAGE_KEYS.INVITATION_GRANTED);
+        localStorage.removeItem(STORAGE_KEYS.ADMIN_MAGIC_VERIFIED);
+        clearConsumedAdminSessionToken();
+      } catch {
+        // ignore storage errors
+      }
+      setAdminConsumedToken(null);
+      setIsAdmin(false);
+      setHasInvitationAccess(false);
+
+      await dispatchAdminMagicLinkEmail({
+        email: cleanReqEmail,
+        fullName: reqData.fullName,
+        companyName: reqData.companyName,
+        role: reqData.role,
+      });
+      setEmailLogs(getSavedEmailLogs());
+
+      showToast(
+        'Inicio convencional bloqueado · Link Mágico Enviado',
+        `Se envió un Magic Link de único uso por EmailJS a ${cleanReqEmail} para habilitar el Dashboard Administrador.`
+      );
+      return;
+    }
+
     try {
       localStorage.setItem(STORAGE_KEYS.INVITATION_GRANTED, 'true');
       localStorage.setItem(STORAGE_KEYS.ADMIN_EMAIL, cleanReqEmail);
@@ -806,7 +876,7 @@ export default function App() {
       // ignore storage errors
     }
     setSessionEmail(cleanReqEmail);
-    setIsAdmin(adminGranted);
+    setIsAdmin(false);
     setUserProfile({
       fullName: reqData.fullName,
       companyName: reqData.companyName,
@@ -820,13 +890,8 @@ export default function App() {
       role: reqData.role,
     });
     setHasInvitationAccess(true);
-    if (adminGranted) {
-      setActiveView('admin-dashboard');
-    }
     showToast(
-      adminGranted
-        ? '¡Dashboard de Administración Activado!'
-        : '¡Invitación Validada!',
+      '¡Invitación Validada!',
       `Bienvenido ${reqData.fullName} · ${reqData.companyName} (${cleanReqEmail}).`
     );
   };
@@ -835,9 +900,12 @@ export default function App() {
     try {
       localStorage.removeItem(STORAGE_KEYS.INVITATION_GRANTED);
       localStorage.removeItem(STORAGE_KEYS.ADMIN_EMAIL);
+      localStorage.removeItem(STORAGE_KEYS.ADMIN_MAGIC_VERIFIED);
+      clearConsumedAdminSessionToken();
     } catch {
       // ignore storage errors
     }
+    setAdminConsumedToken(null);
     setIsAdmin(false);
     setHasInvitationAccess(false);
   };
@@ -845,9 +913,12 @@ export default function App() {
   const handleResetDemoData = () => {
     localStorage.removeItem(STORAGE_KEYS.INVITATION_GRANTED);
     localStorage.removeItem(STORAGE_KEYS.ADMIN_EMAIL);
+    localStorage.removeItem(STORAGE_KEYS.ADMIN_MAGIC_VERIFIED);
+    clearConsumedAdminSessionToken();
     localStorage.removeItem(STORAGE_KEYS.PROFILE);
     localStorage.removeItem(STORAGE_KEYS.COMPANIES);
     localStorage.removeItem(STORAGE_KEYS.MEETINGS);
+    setAdminConsumedToken(null);
     setIsAdmin(false);
     setHasInvitationAccess(false);
     setUserProfile(null);
@@ -1085,6 +1156,104 @@ export default function App() {
     emailLogs,
   ]);
 
+  // Principal Session Token Verification Effect:
+  // Validates against synchronized persistence (localStorage + sessionInstanceId + BroadcastChannel)
+  // whether the session token stored in localStorage has been reused or claimed by another session,
+  // immediately closing the view and locking at InvitationGateView if a token reuse attempt is detected.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const verifyPersistedAdminTokenIntegrity = (triggerSource?: string) => {
+      const storedEmail = (
+        sessionEmail ||
+        localStorage.getItem(STORAGE_KEYS.ADMIN_EMAIL) ||
+        ''
+      )
+        .trim()
+        .toLowerCase();
+      const storedToken = adminConsumedToken || getConsumedAdminSessionToken();
+      const requiresAdminGuard =
+        isAdmin ||
+        activeView === 'admin-dashboard' ||
+        (hasInvitationAccess && isAdminEmail(storedEmail));
+
+      if (!requiresAdminGuard) return;
+
+      const check = validateActiveAdminSessionTokenState(
+        storedEmail,
+        storedToken
+      );
+      if (!check.valid || !isAdminEmail(storedEmail)) {
+        handleLockToInvitationGate();
+        setActiveView('lobby');
+        const reasonDetail =
+          check.reason === 'reuse_attempt_detected'
+            ? 'Se detectó un reintento de uso del mismo Link Mágico en otra pestaña o sesión.'
+            : check.reason === 'used_by_another_session'
+            ? 'El token de sesión almacenado en localStorage ya fue utilizado por otra sesión activa.'
+            : 'El token de sesión administrador no es válido o fue revocado.';
+        showToast(
+          'Vista Cerrada · Seguridad de Token de Sesión',
+          `${reasonDetail}${triggerSource ? ` (${triggerSource})` : ''} Sesión bloqueada en pantalla de invitación.`
+        );
+      }
+    };
+
+    verifyPersistedAdminTokenIntegrity();
+
+    const handleStorageSync = (e: StorageEvent) => {
+      if (
+        !e.key ||
+        e.key.includes('magic') ||
+        e.key.includes('admin') ||
+        e.key === STORAGE_KEYS.INVITATION_GRANTED
+      ) {
+        verifyPersistedAdminTokenIntegrity('Sincronización localStorage');
+      }
+    };
+
+    const handleWindowFocus = () => {
+      verifyPersistedAdminTokenIntegrity();
+    };
+
+    const unsubscribeSecurityChannel = subscribeAdminTokenSecurityEvents(
+      (secEvent) => {
+        const currentSessionId = getCurrentSessionInstanceId();
+        const activeToken =
+          adminConsumedToken || getConsumedAdminSessionToken();
+        if (secEvent.type === 'TOKEN_REUSE_DETECTED') {
+          if (!activeToken || secEvent.token === activeToken || isAdmin) {
+            handleLockToInvitationGate();
+            setActiveView('lobby');
+            showToast(
+              'Vista Cerrada Inmediatamente · Reintento de Token',
+              `Se detectó un reintento de uso del token ${secEvent.token.slice(0, 14)}... Se cerró la sesión y se bloqueó en la pantalla de invitación.`
+            );
+          }
+        } else if (
+          secEvent.type === 'TOKEN_CONSUMED' &&
+          secEvent.sessionInstanceId !== currentSessionId &&
+          isAdmin
+        ) {
+          handleLockToInvitationGate();
+          setActiveView('lobby');
+          showToast(
+            'Sesión Cerrada · Token Activo en Otra Sesión',
+            'Otra sesión autenticó un Link Mágico administrador. Esta vista fue cerrada por seguridad.'
+          );
+        }
+      }
+    );
+
+    window.addEventListener('storage', handleStorageSync);
+    window.addEventListener('focus', handleWindowFocus);
+    return () => {
+      window.removeEventListener('storage', handleStorageSync);
+      window.removeEventListener('focus', handleWindowFocus);
+      unsubscribeSecurityChannel();
+    };
+  }, [isAdmin, activeView, sessionEmail, adminConsumedToken, hasInvitationAccess]);
+
   // Process Single-Use Admin Magic Login Link (magic_login) and Single-Use Invitation Approval Link (approve_request / reject_request)
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -1103,9 +1272,13 @@ export default function App() {
     // Clean URL immediately so refreshing doesn't re-trigger or leave token in address bar
     window.history.replaceState({}, document.title, window.location.pathname);
 
-    // 1. Handle Single-Use Admin Magic Link Login (magic_login)
+    // 1. Handle Single-Use Admin Magic Link Login (admin_action=magic_login)
     if (adminAction === 'magic_login') {
-      if (!isAdminEmail(targetEmail)) {
+      if (
+        !isAdminEmail(targetEmail) &&
+        targetEmail !== ADMIN_EMAIL.toLowerCase() &&
+        targetEmail !== SECONDARY_ADMIN_EMAIL.toLowerCase()
+      ) {
         showToast(
           'Acceso Denegado',
           'Este enlace mágico no corresponde a una cuenta administradora autorizada.'
@@ -1113,38 +1286,44 @@ export default function App() {
         return;
       }
 
-      if (!token || isMagicLoginTokenUsed(token)) {
+      const validation = validateAndConsumeAdminMagicToken(token, targetEmail);
+      if (!validation.valid) {
+        handleLockToInvitationGate();
+        setActiveView('lobby');
         showToast(
-          'Link Mágico ya utilizado o caducado',
-          'Por seguridad, cada Link Mágico es de único uso. Solicita uno nuevo ingresando tus datos.'
+          'Sesión Cerrada · Reintento de Token Detectado',
+          `El Link Mágico (${token || 'sin-token'}) ya fue utilizado (${validation.reason || 'already_used'}). Por seguridad se cerró la sesión y se bloqueó el acceso.`
         );
         return;
       }
 
-      // Consume the Magic Link token immediately so it can never be reused
-      markMagicLoginTokenUsed(token);
-
       const adminPreset = ADMIN_USERS[targetEmail];
       const resolvedAdminName =
-        applicantName !== 'Ejecutivo B2B'
+        validation.record?.fullName ||
+        (applicantName !== 'Ejecutivo B2B'
           ? applicantName
-          : adminPreset?.fullName || 'Administrador BWOS';
+          : adminPreset?.fullName || 'Administrador BWOS');
       const resolvedAdminCompany =
-        applicantCompany !== 'Empresa Invitada B2B'
+        validation.record?.companyName ||
+        (applicantCompany !== 'Empresa Invitada B2B'
           ? applicantCompany
-          : adminPreset?.companyName || 'BWOS | Sitios Web & Merch';
+          : adminPreset?.companyName || 'BWOS | Sitios Web & Merch');
       const resolvedAdminRole =
-        applicantRole !== 'Directivo B2B'
+        validation.record?.role ||
+        (applicantRole !== 'Directivo B2B'
           ? applicantRole
-          : adminPreset?.role || 'Administrador de Admisiones B2B';
+          : adminPreset?.role || 'Administrador de Admisiones B2B');
 
       try {
         localStorage.setItem(STORAGE_KEYS.INVITATION_GRANTED, 'true');
         localStorage.setItem(STORAGE_KEYS.ADMIN_EMAIL, targetEmail);
+        localStorage.setItem(STORAGE_KEYS.ADMIN_MAGIC_VERIFIED, 'true');
       } catch {
         // ignore storage errors
       }
 
+      setAdminConsumedToken(token);
+      setEmailLogs(getSavedEmailLogs());
       setSessionEmail(targetEmail);
       setIsAdmin(true);
       setHasInvitationAccess(true);
@@ -1162,8 +1341,8 @@ export default function App() {
       });
       setActiveView('admin-dashboard');
       showToast(
-        '¡Acceso Concedido por Link Mágico de Único Uso!',
-        `Bienvenido/a ${resolvedAdminName} · ${resolvedAdminCompany} (${targetEmail}).`
+        '¡Acceso Concedido · Token Marcado como "usado"!',
+        `Bienvenido/a ${resolvedAdminName} · Token ${token.slice(0, 14)}... registrado como 'usado' en localStorage.`
       );
       return;
     }
@@ -1174,7 +1353,13 @@ export default function App() {
       )
         .trim()
         .toLowerCase();
-      if (isAdminEmail(storedAdmin)) {
+      const magicVerified =
+        localStorage.getItem(STORAGE_KEYS.ADMIN_MAGIC_VERIFIED) === 'true';
+      const tokenVerified = verifyAdminDashboardSessionToken(
+        storedAdmin,
+        getConsumedAdminSessionToken()
+      );
+      if (isAdminEmail(storedAdmin) && magicVerified && tokenVerified) {
         setSessionEmail(storedAdmin);
         setIsAdmin(true);
         setHasInvitationAccess(true);
@@ -1184,6 +1369,8 @@ export default function App() {
           `Sesión activa como ${storedAdmin}.`
         );
       } else {
+        handleLockToInvitationGate();
+        setActiveView('lobby');
         showToast(
           'Autenticación por Link Mágico Requerida',
           'Solicita tu Link Mágico de acceso único para abrir el Dashboard de Administración.'
@@ -1210,12 +1397,18 @@ export default function App() {
     const activeAdminEmail = isAdminEmail(sessionEmail)
       ? sessionEmail
       : ADMIN_EMAIL.toLowerCase();
+    const sessionMagicToken =
+      getConsumedAdminSessionToken() || generateAdminMagicLoginToken();
+    markMagicLoginTokenUsed(sessionMagicToken, activeAdminEmail);
+    setConsumedAdminSessionToken(sessionMagicToken);
     try {
       localStorage.setItem(STORAGE_KEYS.INVITATION_GRANTED, 'true');
       localStorage.setItem(STORAGE_KEYS.ADMIN_EMAIL, activeAdminEmail);
+      localStorage.setItem(STORAGE_KEYS.ADMIN_MAGIC_VERIFIED, 'true');
     } catch {
       // ignore storage errors
     }
+    setAdminConsumedToken(sessionMagicToken);
     setSessionEmail(activeAdminEmail);
     setIsAdmin(true);
     setHasInvitationAccess(true);
@@ -1611,41 +1804,54 @@ export default function App() {
 
       {/* Main Content Area */}
       <main className="flex-1 w-full">
-        {/* VIEW 0: DASHBOARD DE ADMINISTRACIÓN EXCLUSIVO (clientesbinweb@gmail.com / somosbwos@gmail.com) */}
-        {activeView === 'admin-dashboard' && (
-          <AdminDashboardView
-            isAdmin={isAdmin}
-            adminUser={{
-              fullName:
-                userProfile?.fullName ||
-                ADMIN_USERS[sessionEmail]?.fullName ||
-                'Asesor Digital BWOS',
-              companyName:
-                userProfile?.companyName ||
-                ADMIN_USERS[sessionEmail]?.companyName ||
-                'BWOS | Sitios Web & Merch',
-              email: sessionEmail || SECONDARY_ADMIN_EMAIL,
-            }}
-            companies={companies}
-            meetings={meetings}
-            accessRequests={accessRequests}
-            emailLogs={emailLogs}
-            weeklySchedule={weeklySchedule}
-            onUpdateWeeklySchedule={handleUpdateWeeklySchedule}
-            onSendWeeklyReportNow={handleSendWeeklyReportNow}
-            onApproveRequest={handleApproveAccessRequest}
-            onRejectRequest={handleRejectAccessRequest}
-            onDeleteRequest={handleDeleteAccessRequest}
-            onManualAuthorizeEmail={handleManualAuthorizeEmail}
-            onSendManualEmail={handleSendManualEmail}
-            onClearEmailLogs={handleClearEmailLogs}
-            onRefreshRequests={handleRefreshAccessRequests}
-            onTriggerIncomingCall={() => handleTriggerIncomingCall()}
-            onOpenPublishModal={() => setIsPublishModalOpen(true)}
-            onResetDemoData={handleResetDemoData}
-            onNavigateToLobby={() => setActiveView('lobby')}
-          />
-        )}
+        {/* VIEW 0: DASHBOARD DE ADMINISTRACIÓN EXCLUSIVO (Validado por isAdmin + verifiedSessionToken en estado de App.tsx) */}
+        {activeView === 'admin-dashboard' &&
+          isAdmin &&
+          Boolean(adminConsumedToken) && (
+            <AdminDashboardView
+              isAdmin={isAdmin}
+              verifiedSessionToken={adminConsumedToken}
+              consumedMagicToken={adminConsumedToken}
+              onInvalidSessionDetected={(reason) => {
+                handleLockToInvitationGate();
+                setActiveView('lobby');
+                showToast(
+                  'Acceso Bloqueado · Sesión Cerrada',
+                  reason ||
+                    'Se detectó un token inválido o reintento de uso. Sesión bloqueada en pantalla de invitación.'
+                );
+              }}
+              adminUser={{
+                fullName:
+                  userProfile?.fullName ||
+                  ADMIN_USERS[sessionEmail]?.fullName ||
+                  'Asesor Digital BWOS',
+                companyName:
+                  userProfile?.companyName ||
+                  ADMIN_USERS[sessionEmail]?.companyName ||
+                  'BWOS | Sitios Web & Merch',
+                email: sessionEmail,
+              }}
+              companies={companies}
+              meetings={meetings}
+              accessRequests={accessRequests}
+              emailLogs={emailLogs}
+              weeklySchedule={weeklySchedule}
+              onUpdateWeeklySchedule={handleUpdateWeeklySchedule}
+              onSendWeeklyReportNow={handleSendWeeklyReportNow}
+              onApproveRequest={handleApproveAccessRequest}
+              onRejectRequest={handleRejectAccessRequest}
+              onDeleteRequest={handleDeleteAccessRequest}
+              onManualAuthorizeEmail={handleManualAuthorizeEmail}
+              onSendManualEmail={handleSendManualEmail}
+              onClearEmailLogs={handleClearEmailLogs}
+              onRefreshRequests={handleRefreshAccessRequests}
+              onTriggerIncomingCall={() => handleTriggerIncomingCall()}
+              onOpenPublishModal={() => setIsPublishModalOpen(true)}
+              onResetDemoData={handleResetDemoData}
+              onNavigateToLobby={() => setActiveView('lobby')}
+            />
+          )}
 
         {/* VIEW 1: ACREDITACIÓN EMPRESARIAL */}
         {activeView === 'accreditation' && (

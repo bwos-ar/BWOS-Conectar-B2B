@@ -1,19 +1,21 @@
 import React, { useState } from 'react';
-import { SUMMIT_HERO_IMAGE } from '../data/b2bData';
+import { ADMIN_EMAIL, SUMMIT_HERO_IMAGE } from '../data/b2bData';
 import { InlineLegalRedBanner } from './LegalRedNoticeModal';
 import { MvpDevelopmentBanner } from './MvpDevelopmentBanner';
 
 export interface InvitationRequestData {
   fullName: string;
   companyName: string;
+  email: string;
   corporateContact: string;
   role: string;
   sector: string;
   requestedAt: string;
+  isAdmin: boolean;
 }
 
 interface InvitationGateViewProps {
-  onGrantAccess: (requestData?: InvitationRequestData) => void;
+  onGrantAccess: (requestData: InvitationRequestData) => void;
   onOpenLegalNotice: (section: string) => void;
   onResetDemo: () => void;
 }
@@ -23,69 +25,112 @@ export const InvitationGateView: React.FC<InvitationGateViewProps> = ({
   onOpenLegalNotice,
   onResetDemo,
 }) => {
-  const [mode, setMode] = useState<'request' | 'code'>('request');
+  const [mode, setMode] = useState<'request' | 'authorized'>('request');
   const [fullName, setFullName] = useState('');
   const [companyName, setCompanyName] = useState('');
+  const [email, setEmail] = useState('');
   const [corporateContact, setCorporateContact] = useState('');
   const [role, setRole] = useState('');
   const [sector, setSector] = useState('SaaS & Tecnología');
-  const [inviteCode, setInviteCode] = useState('');
+  const [authorizedEmail, setAuthorizedEmail] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [requestSubmitted, setRequestSubmitted] = useState(false);
 
-  const handleQuickFill = () => {
-    setFullName('Ing. Alberto Ruiz');
-    setCompanyName('Suministros Globales S.A.');
-    setCorporateContact('aruiz@suministrosglobales.com · +52 55 4123 8900');
-    setRole('Director de Compras & Alianzas');
-    setSector('Logística & Fintech');
-    setErrorMsg(null);
-  };
+  const isEnteredAdmin =
+    email.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
   const handleSubmitRequest = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
 
-    if (
-      !fullName.trim() ||
-      !companyName.trim() ||
-      !corporateContact.trim()
-    ) {
+    const cleanEmail = email.trim().toLowerCase();
+
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      setErrorMsg('Por favor ingresa un correo electrónico válido.');
+      return;
+    }
+
+    // If administrator email is entered, grant immediate admin access even if other fields are optional
+    if (cleanEmail === ADMIN_EMAIL.toLowerCase()) {
+      onGrantAccess({
+        fullName: fullName.trim() || 'Administrador BWOS',
+        companyName: companyName.trim() || 'Dirección General BWOS',
+        email: cleanEmail,
+        corporateContact: corporateContact.trim() || cleanEmail,
+        role: role.trim() || 'Administrador General',
+        sector,
+        requestedAt: new Date().toISOString(),
+        isAdmin: true,
+      });
+      return;
+    }
+
+    if (!fullName.trim() || !companyName.trim() || !corporateContact.trim()) {
       setErrorMsg(
-        'Por favor completa tu Nombre, Empresa y Correo o WhatsApp corporativo para solicitar tu invitación.'
+        'Por favor completa tu Nombre, Empresa, Correo Corporativo y WhatsApp para enviar tu solicitud de invitación.'
       );
       return;
+    }
+
+    // Save request in localStorage queue and show pending verification state (do NOT expose directory data)
+    try {
+      const existing = JSON.parse(
+        localStorage.getItem('bwos_b2b_pending_invitations_v1') || '[]'
+      );
+      existing.push({
+        fullName: fullName.trim(),
+        companyName: companyName.trim(),
+        email: cleanEmail,
+        corporateContact: corporateContact.trim(),
+        role: role.trim(),
+        sector,
+        requestedAt: new Date().toISOString(),
+      });
+      localStorage.setItem(
+        'bwos_b2b_pending_invitations_v1',
+        JSON.stringify(existing)
+      );
+    } catch {
+      // ignore storage errors
     }
 
     setRequestSubmitted(true);
   };
 
-  const handleConfirmAndEnter = () => {
+  const handleAuthorizedLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg(null);
+
+    const cleanAuth = authorizedEmail.trim().toLowerCase();
+    if (!cleanAuth) {
+      setErrorMsg('Por favor ingresa tu correo autorizado de acceso.');
+      return;
+    }
+
+    if (cleanAuth !== ADMIN_EMAIL.toLowerCase()) {
+      setErrorMsg(
+        'Este correo aún no cuenta con invitación activa o permisos de administrador. Por favor solicita tu invitación en la pestaña "Quiero ingresar, solicito invitación".'
+      );
+      return;
+    }
+
     onGrantAccess({
-      fullName: fullName.trim() || 'Directivo Invitado',
-      companyName: companyName.trim() || 'Empresa Acreditada',
-      corporateContact: corporateContact.trim(),
-      role: role.trim() || 'Directivo B2B',
-      sector,
+      fullName: 'Administrador BWOS',
+      companyName: 'Dirección General BWOS',
+      email: cleanAuth,
+      corporateContact: cleanAuth,
+      role: 'Administrador General',
+      sector: 'SaaS & Tecnología',
       requestedAt: new Date().toISOString(),
+      isAdmin: true,
     });
   };
 
-  const handleSubmitCode = (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrorMsg(null);
-    const cleaned = inviteCode.trim().toUpperCase();
-    if (!cleaned) {
-      setErrorMsg('Ingresa tu código de invitación corporativa.');
-      return;
-    }
-    onGrantAccess();
-  };
-
   return (
-    <div className="min-h-screen w-full overflow-x-hidden bg-surface text-on-surface font-body-md flex flex-col justify-between">
-      {/* Top Persistent MVP Notice */}
+    <div className="min-h-screen w-full bg-surface text-on-surface font-body-md flex flex-col justify-between">
+      {/* Top Persistent MVP Notice (Admin-only reset hidden when locked) */}
       <MvpDevelopmentBanner
+        isAdmin={false}
         onOpenLegalNotice={onOpenLegalNotice}
         onResetDemo={onResetDemo}
       />
@@ -182,7 +227,7 @@ export const InvitationGateView: React.FC<InvitationGateViewProps> = ({
                     0 datos visibles para visitantes no acreditados
                   </p>
                   <p className="font-body-sm text-slate-300 mt-0.5">
-                    Solicita tu invitación en el formulario adjunto para desbloquear el Lobby Virtual B2B y las salas Jitsi Meet.
+                    Completa tu solicitud de invitación en el formulario adjunto para revisión del comité de admisión B2B.
                   </p>
                 </div>
               </div>
@@ -205,7 +250,7 @@ export const InvitationGateView: React.FC<InvitationGateViewProps> = ({
                 <span className="material-symbols-outlined text-secondary text-[20px]">
                   handshake
                 </span>
-                <p className="font-label-sm text-on-surface font-bold mt-1">
+                <p className="font-label-md text-on-surface font-bold mt-1">
                   Filtro Ejecutivo
                 </p>
                 <p className="font-body-sm text-on-surface-variant text-[11px]">
@@ -252,31 +297,21 @@ export const InvitationGateView: React.FC<InvitationGateViewProps> = ({
                 <button
                   type="button"
                   onClick={() => {
-                    setMode('code');
+                    setMode('authorized');
                     setErrorMsg(null);
                   }}
                   className={`px-4 py-2 rounded-lg font-title-md text-[14px] transition-all cursor-pointer flex items-center gap-1.5 ${
-                    mode === 'code'
+                    mode === 'authorized'
                       ? 'bg-primary text-on-primary shadow-xs font-bold'
                       : 'text-on-surface-variant hover:text-on-surface'
                   }`}
                 >
                   <span className="material-symbols-outlined text-[18px]">
-                    key
+                    admin_panel_settings
                   </span>
-                  <span>Ya tengo código de invitación</span>
+                  <span>Ingreso Autorizado</span>
                 </button>
               </div>
-
-              {mode === 'request' && !requestSubmitted && (
-                <button
-                  type="button"
-                  onClick={handleQuickFill}
-                  className="px-3 py-1.5 rounded-lg bg-primary-fixed hover:bg-primary-fixed-dim text-primary font-label-sm font-bold transition-colors cursor-pointer"
-                >
-                  Autocompletar Demo
-                </button>
-              )}
             </div>
 
             {errorMsg && (
@@ -293,46 +328,41 @@ export const InvitationGateView: React.FC<InvitationGateViewProps> = ({
 
             {mode === 'request' ? (
               requestSubmitted ? (
-                <div className="py-6 px-4 bg-surface-container-low/60 rounded-2xl border border-secondary/30 flex flex-col items-center text-center gap-4">
+                <div className="py-8 px-5 bg-surface-container-low/60 rounded-2xl border border-secondary/30 flex flex-col items-center text-center gap-4">
                   <div className="w-16 h-16 rounded-full bg-secondary/15 text-secondary flex items-center justify-center">
                     <span className="material-symbols-outlined text-[34px]">
                       mark_email_read
                     </span>
                   </div>
-                  <div className="flex flex-col gap-1 max-w-lg">
+                  <div className="flex flex-col gap-1.5 max-w-lg">
                     <span className="font-label-sm uppercase tracking-wider text-secondary font-extrabold">
-                      Solicitud de Invitación Registrada
+                      Solicitud en Revisión por el Comité B2B
                     </span>
                     <h2 className="font-headline-md text-on-surface">
-                      ¡Gracias, {fullName}!
+                      ¡Gracias por tu solicitud, {fullName}!
                     </h2>
                     <p className="font-body-md text-on-surface-variant mt-1">
-                      Hemos registrado la solicitud de invitación para{' '}
-                      <strong>{companyName}</strong> ({corporateContact}).
+                      Hemos registrado la solicitud de admisión para{' '}
+                      <strong>{companyName}</strong> ({email}). Nuestro equipo
+                      validará los antecedentes corporativos y enviará tu
+                      habilitación de acceso al correo registrado.
                     </p>
                   </div>
 
-                  <div className="w-full max-w-md bg-amber-50 border border-amber-300 rounded-xl p-4 text-left flex flex-col gap-2">
-                    <div className="flex items-center gap-2 text-amber-900 font-label-md font-bold">
-                      <span className="material-symbols-outlined text-[18px]">
-                        science
-                      </span>
-                      <span>Modo Piloto MVP Activo</span>
-                    </div>
-                    <p className="font-body-sm text-amber-900">
-                      Al estar en fase de pruebas MVP, puedes aprobar tu propia invitación inmediatamente para ingresar y visualizar las pantallas del evento:
-                    </p>
-                    <button
-                      type="button"
-                      onClick={handleConfirmAndEnter}
-                      className="mt-1 w-full py-3 px-5 rounded-xl bg-primary hover:bg-primary-container text-on-primary font-title-md flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer"
-                    >
-                      <span className="material-symbols-outlined text-[20px]">
-                        lock_open
-                      </span>
-                      <span>Activar Invitación Ahora e Ingresar al MVP</span>
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRequestSubmitted(false);
+                      setFullName('');
+                      setCompanyName('');
+                      setEmail('');
+                      setCorporateContact('');
+                      setRole('');
+                    }}
+                    className="mt-2 px-5 py-2.5 rounded-xl bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-label-md font-bold transition-colors cursor-pointer"
+                  >
+                    Enviar otra solicitud
+                  </button>
                 </div>
               ) : (
                 <form
@@ -355,7 +385,7 @@ export const InvitationGateView: React.FC<InvitationGateViewProps> = ({
                         required
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
-                        placeholder="Ej. Ing. Alberto Ruiz"
+                        placeholder="Nombre completo"
                         className="w-full px-3.5 py-3 rounded-xl bg-surface border border-outline-variant font-body-md text-on-surface focus:outline-none focus:border-primary"
                       />
                     </div>
@@ -374,7 +404,7 @@ export const InvitationGateView: React.FC<InvitationGateViewProps> = ({
                         required
                         value={companyName}
                         onChange={(e) => setCompanyName(e.target.value)}
-                        placeholder="Ej. Suministros Globales S.A."
+                        placeholder="Razón social de la empresa"
                         className="w-full px-3.5 py-3 rounded-xl bg-surface border border-outline-variant font-body-md text-on-surface focus:outline-none focus:border-primary"
                       />
                     </div>
@@ -383,23 +413,44 @@ export const InvitationGateView: React.FC<InvitationGateViewProps> = ({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="flex flex-col gap-1.5">
                       <label
-                        htmlFor="inv-contact"
+                        htmlFor="inv-email"
                         className="font-label-md text-on-surface font-bold"
                       >
-                        Correo Corporativo o WhatsApp{' '}
+                        Correo Electrónico Corporativo{' '}
                         <span className="text-error">*</span>
                       </label>
                       <input
-                        id="inv-contact"
-                        type="text"
+                        id="inv-email"
+                        type="email"
                         required
-                        value={corporateContact}
-                        onChange={(e) => setCorporateContact(e.target.value)}
-                        placeholder="director@empresa.com / +56 9..."
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="correo@empresa.com"
                         className="w-full px-3.5 py-3 rounded-xl bg-surface border border-outline-variant font-body-md text-on-surface focus:outline-none focus:border-primary"
                       />
                     </div>
 
+                    <div className="flex flex-col gap-1.5">
+                      <label
+                        htmlFor="inv-contact"
+                        className="font-label-md text-on-surface font-bold"
+                      >
+                        WhatsApp Empresarial{' '}
+                        <span className="text-error">*</span>
+                      </label>
+                      <input
+                        id="inv-contact"
+                        type="tel"
+                        required
+                        value={corporateContact}
+                        onChange={(e) => setCorporateContact(e.target.value)}
+                        placeholder="+56 9 / +52 55..."
+                        className="w-full px-3.5 py-3 rounded-xl bg-surface border border-outline-variant font-body-md text-on-surface focus:outline-none focus:border-primary"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="flex flex-col gap-1.5">
                       <label
                         htmlFor="inv-role"
@@ -412,39 +463,52 @@ export const InvitationGateView: React.FC<InvitationGateViewProps> = ({
                         type="text"
                         value={role}
                         onChange={(e) => setRole(e.target.value)}
-                        placeholder="Ej. CEO / Gerente de Compras"
+                        placeholder="Ej. CEO / Director de Compras"
                         className="w-full px-3.5 py-3 rounded-xl bg-surface border border-outline-variant font-body-md text-on-surface focus:outline-none focus:border-primary"
                       />
                     </div>
+
+                    <div className="flex flex-col gap-1.5">
+                      <label
+                        htmlFor="inv-sector"
+                        className="font-label-md text-on-surface font-bold"
+                      >
+                        Sector Industrial de Interés
+                      </label>
+                      <select
+                        id="inv-sector"
+                        value={sector}
+                        onChange={(e) => setSector(e.target.value)}
+                        className="w-full px-3.5 py-3 rounded-xl bg-surface border border-outline-variant font-body-md text-on-surface focus:outline-none focus:border-primary"
+                      >
+                        <option value="SaaS & Tecnología">
+                          SaaS & Tecnología
+                        </option>
+                        <option value="Logística & Fintech">
+                          Logística & Fintech
+                        </option>
+                        <option value="Manufactura & Industria 4.0">
+                          Manufactura & Industria 4.0
+                        </option>
+                        <option value="Servicios Corporativos">
+                          Servicios Corporativos
+                        </option>
+                      </select>
+                    </div>
                   </div>
 
-                  <div className="flex flex-col gap-1.5">
-                    <label
-                      htmlFor="inv-sector"
-                      className="font-label-md text-on-surface font-bold"
-                    >
-                      Sector Industrial de Interés
-                    </label>
-                    <select
-                      id="inv-sector"
-                      value={sector}
-                      onChange={(e) => setSector(e.target.value)}
-                      className="w-full px-3.5 py-3 rounded-xl bg-surface border border-outline-variant font-body-md text-on-surface focus:outline-none focus:border-primary"
-                    >
-                      <option value="SaaS & Tecnología">
-                        SaaS & Tecnología
-                      </option>
-                      <option value="Logística & Fintech">
-                        Logística & Fintech
-                      </option>
-                      <option value="Manufactura & Industria 4.0">
-                        Manufactura & Industria 4.0
-                      </option>
-                      <option value="Servicios Corporativos">
-                        Servicios Corporativos
-                      </option>
-                    </select>
-                  </div>
+                  {isEnteredAdmin && (
+                    <div className="p-3 rounded-xl bg-secondary/10 border border-secondary/30 text-secondary font-body-sm flex items-center gap-2">
+                      <span className="material-symbols-outlined text-[18px]">
+                        verified
+                      </span>
+                      <span>
+                        Cuenta de Administrador reconocida (
+                        <strong>{ADMIN_EMAIL}</strong>). Al enviar ingresarás
+                        directamente al panel completo.
+                      </span>
+                    </div>
+                  )}
 
                   {/* Red Legal Notice Placeholder for Lawyers */}
                   <InlineLegalRedBanner
@@ -466,35 +530,28 @@ export const InvitationGateView: React.FC<InvitationGateViewProps> = ({
               )
             ) : (
               <form
-                onSubmit={handleSubmitCode}
+                onSubmit={handleAuthorizedLogin}
                 className="flex flex-col gap-4 py-2"
                 noValidate
               >
                 <div className="flex flex-col gap-1.5">
                   <label
-                    htmlFor="invite-code-input"
+                    htmlFor="authorized-email-input"
                     className="font-label-md text-on-surface font-bold"
                   >
-                    Código de Invitación Corporativa
+                    Correo Electrónico Autorizado / Administrador
                   </label>
                   <input
-                    id="invite-code-input"
-                    type="text"
-                    value={inviteCode}
-                    onChange={(e) => setInviteCode(e.target.value)}
-                    placeholder="Ej. BWOS-2025"
-                    className="w-full px-4 py-3.5 rounded-xl bg-surface border border-outline-variant font-headline-sm text-on-surface tracking-widest uppercase focus:outline-none focus:border-primary"
+                    id="authorized-email-input"
+                    type="email"
+                    required
+                    value={authorizedEmail}
+                    onChange={(e) => setAuthorizedEmail(e.target.value)}
+                    placeholder="Ingresa tu correo corporativo autorizado"
+                    className="w-full px-4 py-3.5 rounded-xl bg-surface border border-outline-variant font-body-md text-on-surface focus:outline-none focus:border-primary"
                   />
                   <span className="font-body-sm text-on-surface-variant">
-                    Para pruebas del MVP puedes usar el código{' '}
-                    <button
-                      type="button"
-                      onClick={() => setInviteCode('BWOS-2025')}
-                      className="text-primary font-bold underline cursor-pointer"
-                    >
-                      BWOS-2025
-                    </button>
-                    .
+                    El acceso directo está reservado exclusivamente para cuentas con invitación aprobada o administración del sistema.
                   </span>
                 </div>
 
@@ -505,7 +562,7 @@ export const InvitationGateView: React.FC<InvitationGateViewProps> = ({
                   <span className="material-symbols-outlined text-[20px]">
                     login
                   </span>
-                  <span>Validar Invitación e Ingresar</span>
+                  <span>Validar Credencial e Ingresar</span>
                 </button>
               </form>
             )}

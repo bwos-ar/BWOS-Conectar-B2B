@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 
 interface MvpDevelopmentBannerProps {
+  isAdmin?: boolean;
   onOpenLegalNotice: (sectionName: string) => void;
   onResetDemo: () => void;
 }
 
 export const MvpDevelopmentBanner: React.FC<MvpDevelopmentBannerProps> = ({
+  isAdmin = false,
   onOpenLegalNotice,
   onResetDemo,
 }) => {
@@ -286,16 +288,18 @@ export const MvpDevelopmentBanner: React.FC<MvpDevelopmentBannerProps> = ({
                   <span>Ver Pendientes de Abogados</span>
                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    onResetDemo();
-                    setIsModalOpen(false);
-                  }}
-                  className="px-3 py-1.5 rounded-lg bg-surface-container-high text-on-surface-variant hover:text-on-surface font-label-sm font-semibold transition-colors cursor-pointer"
-                >
-                  Reiniciar Datos Demo
-                </button>
+                {isAdmin && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onResetDemo();
+                      setIsModalOpen(false);
+                    }}
+                    className="px-3 py-1.5 rounded-lg bg-surface-container-high text-on-surface-variant hover:text-on-surface font-label-sm font-semibold transition-colors cursor-pointer"
+                  >
+                    Reiniciar Datos (Admin)
+                  </button>
+                )}
               </div>
 
               <button

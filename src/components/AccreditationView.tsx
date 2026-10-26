@@ -8,12 +8,14 @@ import { InlineLegalRedBanner } from './LegalRedNoticeModal';
 
 interface AccreditationViewProps {
   userProfile: UserProfile | null;
+  isAdmin?: boolean;
   onCompleteAccreditation: (profile: UserProfile) => void;
   onOpenLegalNotice: (section: string) => void;
 }
 
 export const AccreditationView: React.FC<AccreditationViewProps> = ({
   userProfile,
+  isAdmin = false,
   onCompleteAccreditation,
   onOpenLegalNotice,
 }) => {
@@ -279,13 +281,15 @@ export const AccreditationView: React.FC<AccreditationViewProps> = ({
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handleQuickFillDemo}
-                  className="px-3 py-1 rounded-lg bg-primary-fixed/70 hover:bg-primary-fixed text-primary font-label-sm transition-colors cursor-pointer"
-                >
-                  Autocompletar ejemplo
-                </button>
+                {isAdmin && (
+                  <button
+                    type="button"
+                    onClick={handleQuickFillDemo}
+                    className="px-3 py-1 rounded-lg bg-primary-fixed/70 hover:bg-primary-fixed text-primary font-label-sm transition-colors cursor-pointer"
+                  >
+                    Autocompletar (Admin)
+                  </button>
+                )}
                 <span className="font-label-sm uppercase bg-surface-container-high px-2.5 py-1 rounded-md text-tertiary">
                   Paso 1 de 1
                 </span>

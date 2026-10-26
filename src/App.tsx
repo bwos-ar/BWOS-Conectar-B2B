@@ -13,6 +13,7 @@ import { MvpDevelopmentBanner } from './components/MvpDevelopmentBanner';
 import { NetworkingInsights } from './components/NetworkingInsights';
 import { VirtualCallRoom } from './components/VirtualCallRoom';
 import {
+  ADMIN_EMAIL,
   CompanyCard,
   DEFAULT_INCOMING_CALL,
   EXECUTIVE_AVATARS,
@@ -32,11 +33,14 @@ type MainView =
   | 'virtual-room';
 
 const STORAGE_KEYS = {
-  INVITATION_GRANTED: 'bwos_b2b_invitation_granted_v1',
+  INVITATION_GRANTED: 'bwos_b2b_invitation_granted_v2',
+  ADMIN_EMAIL: 'bwos_b2b_admin_email_v2',
   PROFILE: 'bwos_b2b_user_profile_v1',
-  COMPANIES: 'bwos_b2b_companies_v1',
+  COMPANIES: 'bwos_b2b_companies_v2',
   MEETINGS: 'bwos_b2b_meetings_v1',
 };
+
+const ITEMS_PER_PAGE = 8;
 
 export default function App() {
   // Mandatory Invitation Gate State (Default false: zero data shown until unlocked)
@@ -49,6 +53,18 @@ export default function App() {
       }
     }
   );
+
+  // Admin Session State (Only true for clientesbinweb@gmail.com)
+  const [isAdmin, setIsAdmin] = useState<boolean>(() => {
+    try {
+      return (
+        localStorage.getItem(STORAGE_KEYS.ADMIN_EMAIL)?.toLowerCase() ===
+        ADMIN_EMAIL.toLowerCase()
+      );
+    } catch {
+      return false;
+    }
+  });
 
   // User Profile State
   const [userProfile, setUserProfile] = useState<UserProfile | null>(() => {
@@ -238,6 +254,30 @@ export default function App() {
     countryFilter,
     sortBy,
   ]);
+
+  // Reset page to 1 when search or filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [
+    searchQuery,
+    selectedSector,
+    onlyImmediateMatch,
+    minMatchFilter,
+    countryFilter,
+    sortBy,
+  ]);
+
+  const totalPages = useMemo(
+    () => Math.max(1, Math.ceil(filteredCompanies.length / ITEMS_PER_PAGE)),
+    [filteredCompanies.length]
+  );
+
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+
+  const paginatedCompanies = useMemo(() => {
+    const startIndex = (safeCurrentPage - 1) * ITEMS_PER_PAGE;
+    return filteredCompanies.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredCompanies, safeCurrentPage]);
 
   const sectorCounts = useMemo(() => {
     return {
@@ -579,13 +619,20 @@ export default function App() {
     );
   };
 
-  const handleGrantInvitationAccess = (reqData?: InvitationRequestData) => {
+  const handleGrantInvitationAccess = (reqData: InvitationRequestData) => {
+    const adminGranted =
+      reqData.email.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase();
     try {
       localStorage.setItem(STORAGE_KEYS.INVITATION_GRANTED, 'true');
+      localStorage.setItem(
+        STORAGE_KEYS.ADMIN_EMAIL,
+        reqData.email.trim().toLowerCase()
+      );
     } catch {
       // ignore storage errors
     }
-    if (reqData && !userProfile) {
+    setIsAdmin(adminGranted);
+    if (!userProfile) {
       setUserProfile({
         fullName: reqData.fullName,
         companyName: reqData.companyName,
@@ -600,25 +647,31 @@ export default function App() {
     }
     setHasInvitationAccess(true);
     showToast(
-      '¡Invitación Validada!',
-      'Bienvenido al ecosistema privado BWOS Conectar B2B.'
+      adminGranted
+        ? '¡Sesión de Administrador Activada!'
+        : '¡Invitación Validada!',
+      `Bienvenido ${reqData.fullName} (${reqData.email}).`
     );
   };
 
   const handleLockToInvitationGate = () => {
     try {
       localStorage.removeItem(STORAGE_KEYS.INVITATION_GRANTED);
+      localStorage.removeItem(STORAGE_KEYS.ADMIN_EMAIL);
     } catch {
       // ignore storage errors
     }
+    setIsAdmin(false);
     setHasInvitationAccess(false);
   };
 
   const handleResetDemoData = () => {
     localStorage.removeItem(STORAGE_KEYS.INVITATION_GRANTED);
+    localStorage.removeItem(STORAGE_KEYS.ADMIN_EMAIL);
     localStorage.removeItem(STORAGE_KEYS.PROFILE);
     localStorage.removeItem(STORAGE_KEYS.COMPANIES);
     localStorage.removeItem(STORAGE_KEYS.MEETINGS);
+    setIsAdmin(false);
     setHasInvitationAccess(false);
     setUserProfile(null);
     setCompanies(INITIAL_COMPANIES);
@@ -658,9 +711,10 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen w-full max-w-[100vw] overflow-x-hidden bg-surface text-on-surface font-body-md flex flex-col justify-between pb-20 lg:pb-0">
+    <div className="min-h-screen w-full bg-surface text-on-surface font-body-md flex flex-col justify-between pb-20 lg:pb-0">
       {/* Persistent Top Notice: Plataforma en Desarrollo (MVP Piloto) */}
       <MvpDevelopmentBanner
+        isAdmin={isAdmin}
         onOpenLegalNotice={(sec) => setLegalModalSection(sec)}
         onResetDemo={handleResetDemoData}
       />
@@ -817,19 +871,21 @@ export default function App() {
             </button>
           </nav>
 
-          {/* Right Quick Actions: Simulate Call, Legal Red Notice, Lock Gate & Profile */}
+          {/* Right Quick Actions: Simulate Call (Admin), Legal Red Notice, Lock Gate & Profile */}
           <div className="flex flex-wrap items-center gap-1.5 shrink-0">
-            <button
-              type="button"
-              onClick={() => handleTriggerIncomingCall()}
-              className="h-8 px-2.5 rounded-lg bg-secondary/15 hover:bg-secondary hover:text-on-secondary text-secondary font-label-sm font-bold flex items-center gap-1 transition-all cursor-pointer"
-              title="Probar modal de Videollamada B2B Entrante"
-            >
-              <span className="material-symbols-outlined text-[16px] animate-bounce">
-                ring_volume
-              </span>
-              <span className="hidden xl:inline">Llamada Entrante</span>
-            </button>
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={() => handleTriggerIncomingCall()}
+                className="h-8 px-2.5 rounded-lg bg-secondary/15 hover:bg-secondary hover:text-on-secondary text-secondary font-label-sm font-bold flex items-center gap-1 transition-all cursor-pointer"
+                title="Simular modal de Videollamada B2B Entrante (Solo Admin)"
+              >
+                <span className="material-symbols-outlined text-[16px] animate-bounce">
+                  ring_volume
+                </span>
+                <span className="hidden xl:inline">Llamada Entrante</span>
+              </button>
+            )}
 
             <button
               type="button"
@@ -851,12 +907,12 @@ export default function App() {
               type="button"
               onClick={handleLockToInvitationGate}
               className="h-8 px-2.5 rounded-lg bg-surface-container-high hover:bg-inverse-surface text-on-surface hover:text-white font-label-sm flex items-center gap-1 transition-colors cursor-pointer"
-              title="Volver a la pantalla inicial 'Quiero ingresar, solicito invitación' (Oculta todos los datos)"
+              title="Cerrar sesión y volver a la pantalla 'Quiero ingresar, solicito invitación'"
             >
               <span className="material-symbols-outlined text-[15px]">
-                lock
+                logout
               </span>
-              <span className="hidden md:inline">Bloquear / Invitación</span>
+              <span className="hidden md:inline">Salir</span>
             </button>
 
             <button
@@ -872,10 +928,10 @@ export default function App() {
               </div>
               <div className="hidden 2xl:flex flex-col text-left">
                 <span className="font-label-sm text-on-surface leading-tight font-bold truncate max-w-[110px]">
-                  {userProfile?.fullName || 'Ing. Alberto Ruiz'}
+                  {userProfile?.fullName || 'Administrador BWOS'}
                 </span>
                 <span className="font-label-sm text-on-surface-variant text-[10px] truncate max-w-[110px]">
-                  {userProfile?.companyName || 'Suministros Globales'}
+                  {isAdmin ? ADMIN_EMAIL : userProfile?.companyName || ''}
                 </span>
               </div>
             </button>
@@ -889,6 +945,7 @@ export default function App() {
         {activeView === 'accreditation' && (
           <AccreditationView
             userProfile={userProfile}
+            isAdmin={isAdmin}
             onCompleteAccreditation={handleCompleteAccreditation}
             onOpenLegalNotice={(sec) => setLegalModalSection(sec)}
           />
@@ -1477,7 +1534,10 @@ export default function App() {
             </section>
 
             {/* Cards Grid Section */}
-            <section className="w-full px-4 md:px-8 py-5">
+            <section
+              id="directory-grid-anchor"
+              className="w-full px-4 md:px-8 py-5 scroll-mt-28"
+            >
               <div className="max-w-[1600px] mx-auto">
                 {filteredCompanies.length === 0 ? (
                   <div className="py-14 px-4 bg-surface-container-lowest rounded-2xl border border-surface-container-high flex flex-col items-center justify-center text-center">
@@ -1503,7 +1563,7 @@ export default function App() {
                 ) : activeView === 'bw2-directory' ? (
                   /* BW2 INTEROPERABILITY TAG CARDS GRID (Matches Image_16) */
                   <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-6">
-                    {filteredCompanies.map((company) => (
+                    {paginatedCompanies.map((company) => (
                       <article
                         key={company.id}
                         className="bg-surface-container-lowest rounded-xl p-5 shadow-sm ring-1 ring-outline-variant/40 flex flex-col justify-between hover:shadow-md transition-all"
@@ -1668,7 +1728,7 @@ export default function App() {
                 ) : (
                   /* STANDARD LOBBY VIRTUAL B2B CARDS GRID (Matches Image_8 & Image_10 & Image_2) */
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {filteredCompanies.map((company) => (
+                    {paginatedCompanies.map((company) => (
                       <article
                         key={company.id}
                         className="bg-surface-container-lowest rounded-2xl shadow-sm ring-1 ring-outline-variant/50 hover:shadow-md hover:ring-primary/40 transition-all flex flex-col justify-between overflow-hidden group"
@@ -1872,16 +1932,18 @@ export default function App() {
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto justify-end">
-                      <button
-                        type="button"
-                        onClick={handleResetDemoData}
-                        className="px-3.5 py-2 rounded-xl bg-surface-container text-on-surface-variant hover:bg-surface-container-high transition-colors font-label-md flex items-center gap-1.5 cursor-pointer"
-                      >
-                        <span className="material-symbols-outlined text-[17px]">
-                          restart_alt
-                        </span>
-                        <span>Reiniciar Demo</span>
-                      </button>
+                      {isAdmin && (
+                        <button
+                          type="button"
+                          onClick={handleResetDemoData}
+                          className="px-3.5 py-2 rounded-xl bg-surface-container text-on-surface-variant hover:bg-surface-container-high transition-colors font-label-md flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <span className="material-symbols-outlined text-[17px]">
+                            restart_alt
+                          </span>
+                          <span>Reiniciar Datos (Admin)</span>
+                        </button>
+                      )}
 
                       <button
                         type="button"
@@ -1918,36 +1980,81 @@ export default function App() {
                     <span className="font-body-sm text-on-surface-variant">
                       Mostrando{' '}
                       <span className="font-bold text-on-surface tabular-nums">
-                        {filteredCompanies.length}
+                        {filteredCompanies.length === 0
+                          ? 0
+                          : (safeCurrentPage - 1) * ITEMS_PER_PAGE + 1}
+                        –
+                        {Math.min(
+                          safeCurrentPage * ITEMS_PER_PAGE,
+                          filteredCompanies.length
+                        )}
                       </span>{' '}
                       de{' '}
                       <span className="font-bold text-on-surface tabular-nums">
-                        24
+                        {filteredCompanies.length}
                       </span>{' '}
-                      organizaciones verificadas disponibles para encuentro
+                      organizaciones verificadas disponibles para encuentro (Página{' '}
+                      {safeCurrentPage} de {totalPages})
                     </span>
 
-                    <div className="flex items-center gap-2">
-                      {[1, 2, 3].map((p) => (
-                        <button
-                          key={p}
-                          type="button"
-                          onClick={() => {
-                            setCurrentPage(p);
-                            showToast(
-                              `Página ${p} del Directorio`,
-                              'Mostrando organizaciones activas validadas.'
-                            );
-                          }}
-                          className={`w-9 h-9 rounded-lg font-title-md flex items-center justify-center transition-colors cursor-pointer ${
-                            currentPage === p
-                              ? 'bg-primary text-on-primary shadow-xs'
-                              : 'bg-surface-container-lowest ring-1 ring-outline-variant/60 text-on-surface hover:bg-surface-container-low'
-                          }`}
-                        >
-                          {p}
-                        </button>
-                      ))}
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <button
+                        type="button"
+                        disabled={safeCurrentPage <= 1}
+                        onClick={() => {
+                          const prev = Math.max(1, safeCurrentPage - 1);
+                          setCurrentPage(prev);
+                          document
+                            .getElementById('directory-grid-anchor')
+                            ?.scrollIntoView({ behavior: 'smooth' });
+                        }}
+                        className="px-3 h-9 rounded-lg font-label-md flex items-center gap-1 bg-surface-container-lowest ring-1 ring-outline-variant/60 text-on-surface hover:bg-surface-container-low disabled:opacity-40 disabled:pointer-events-none transition-colors cursor-pointer"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">
+                          chevron_left
+                        </span>
+                        <span>Anterior</span>
+                      </button>
+
+                      {Array.from({ length: totalPages }, (_, idx) => idx + 1).map(
+                        (p) => (
+                          <button
+                            key={p}
+                            type="button"
+                            onClick={() => {
+                              setCurrentPage(p);
+                              document
+                                .getElementById('directory-grid-anchor')
+                                ?.scrollIntoView({ behavior: 'smooth' });
+                            }}
+                            className={`w-9 h-9 rounded-lg font-title-md flex items-center justify-center transition-colors cursor-pointer ${
+                              safeCurrentPage === p
+                                ? 'bg-primary text-on-primary shadow-xs font-bold'
+                                : 'bg-surface-container-lowest ring-1 ring-outline-variant/60 text-on-surface hover:bg-surface-container-low'
+                            }`}
+                          >
+                            {p}
+                          </button>
+                        )
+                      )}
+
+                      <button
+                        type="button"
+                        disabled={safeCurrentPage >= totalPages}
+                        onClick={() => {
+                          const next = Math.min(totalPages, safeCurrentPage + 1);
+                          setCurrentPage(next);
+                          document
+                            .getElementById('directory-grid-anchor')
+                            ?.scrollIntoView({ behavior: 'smooth' });
+                        }}
+                        className="px-3 h-9 rounded-lg font-label-md flex items-center gap-1 bg-surface-container-lowest ring-1 ring-outline-variant/60 text-on-surface hover:bg-surface-container-low disabled:opacity-40 disabled:pointer-events-none transition-colors cursor-pointer"
+                      >
+                        <span>Siguiente</span>
+                        <span className="material-symbols-outlined text-[16px]">
+                          chevron_right
+                        </span>
+                      </button>
                     </div>
                   </div>
                 </div>
